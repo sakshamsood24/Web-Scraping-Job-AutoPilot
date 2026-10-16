@@ -974,14 +974,21 @@
         
         <form id="run-pipeline-form" onsubmit="triggerPipeline(event)">
           <div class="form-group">
-            <label>Target Greenhouse Boards</label>
-            <input type="text" class="form-control" id="target-boards" value="canonical" required>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="margin-bottom: 0;">Target Greenhouse Boards</label>
+              <span style="font-size: 0.72rem; color: #34d399; font-weight: 600;">Type "all" for Any Hiring Company</span>
+            </div>
+            <input type="text" class="form-control" id="target-boards" value="all" required placeholder="e.g. all, or canonical, gitlab, stripe">
             <div class="preset-chips">
+              <span class="chip-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 600;" onclick="setBoard('all')">🌐 Any Company (All Top Tech)</span>
               <span class="chip-btn" onclick="setBoard('canonical')">Canonical</span>
-              <span class="chip-btn" onclick="setBoard('automattic')">Automattic</span>
               <span class="chip-btn" onclick="setBoard('gitlab')">GitLab</span>
-              <span class="chip-btn" onclick="setBoard('docker')">Docker</span>
-              <span class="chip-btn" onclick="setBoard('canonical,automattic,gitlab')">Multi-Board</span>
+              <span class="chip-btn" onclick="setBoard('stripe')">Stripe</span>
+              <span class="chip-btn" onclick="setBoard('cloudflare')">Cloudflare</span>
+              <span class="chip-btn" onclick="setBoard('elastic')">Elastic</span>
+              <span class="chip-btn" onclick="setBoard('mongodb')">MongoDB</span>
+              <span class="chip-btn" onclick="setBoard('reddit')">Reddit</span>
+              <span class="chip-btn" onclick="setBoard('figma')">Figma</span>
             </div>
           </div>
 

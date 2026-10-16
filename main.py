@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 # Import pipeline modules
 from db import is_already_applied, log_application, get_supabase_client, SUPABASE_SCHEMA_SQL
-from fetcher import fetch_greenhouse_jobs, DEFAULT_KEYWORDS
+from fetcher import fetch_greenhouse_jobs, DEFAULT_KEYWORDS, POPULAR_TECH_COMPANIES
 from evaluator import evaluate_job
 from executor import fill_job_application_sync
 
@@ -112,19 +112,27 @@ def run_autopilot(
             "To connect PostgreSQL, set SUPABASE_URL and SUPABASE_KEY in your .env file."
         )
 
+    # Expand "all", "auto", or "any" to all popular tech companies
+    expanded_boards: List[str] = []
+    for b in boards:
+        b_clean = b.strip().lower()
+        if b_clean in ("all", "auto", "popular", "any", "top"):
+            expanded_boards.extend(POPULAR_TECH_COMPANIES)
+        elif b_clean:
+            expanded_boards.append(b.strip())
+    
+    unique_boards = list(dict.fromkeys(expanded_boards)) if expanded_boards else POPULAR_TECH_COMPANIES
+
     # 2. Discovery Phase
     all_discovered_jobs: List[Dict[str, Any]] = []
-    for board in boards:
-        board_token = board.strip()
-        if not board_token:
-            continue
+    for board_token in unique_boards:
         try:
             jobs = fetch_greenhouse_jobs(board_token, keywords=keywords, filter_by_keywords=True)
             all_discovered_jobs.extend(jobs)
         except Exception as e:
             logger.error(f"Error fetching jobs from board '{board_token}': {e}")
 
-    logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across boards.")
+    logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across {len(unique_boards)} boards.")
 
     # Apply limit
     jobs_to_process = all_discovered_jobs[:job_limit]

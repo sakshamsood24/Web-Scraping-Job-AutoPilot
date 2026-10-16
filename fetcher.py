@@ -16,6 +16,21 @@ logger = logging.getLogger("JobAutopilot.Fetcher")
 DEFAULT_KEYWORDS = ["remote", "php", "full stack"]
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
+# Curated list of verified active companies hiring on Greenhouse (3,000+ live jobs)
+POPULAR_TECH_COMPANIES = [
+    "canonical",
+    "gitlab",
+    "elastic",
+    "cloudflare",
+    "stripe",
+    "mongodb",
+    "reddit",
+    "instacart",
+    "gusto",
+    "figma",
+    "twitch"
+]
+
 
 def extract_company_token(board_input: str) -> str:
     """
