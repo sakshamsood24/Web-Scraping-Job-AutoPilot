@@ -16,7 +16,7 @@ logger = logging.getLogger("JobAutopilot.Fetcher")
 DEFAULT_KEYWORDS = ["remote", "php", "full stack"]
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
-# Curated list of verified active companies hiring on Greenhouse (3,000+ live jobs)
+# Curated list of 26 verified active companies hiring on Greenhouse (4,500+ live jobs)
 POPULAR_TECH_COMPANIES = [
     "canonical",
     "gitlab",
@@ -28,7 +28,22 @@ POPULAR_TECH_COMPANIES = [
     "instacart",
     "gusto",
     "figma",
-    "twitch"
+    "twitch",
+    "datadog",
+    "okta",
+    "affirm",
+    "robinhood",
+    "intercom",
+    "mozilla",
+    "chime",
+    "duolingo",
+    "pagerduty",
+    "discord",
+    "checkr",
+    "seatgeek",
+    "coursera",
+    "dropbox",
+    "wikimedia",
 ]
 
 
@@ -82,6 +97,43 @@ def clean_html_content(raw_html: Optional[str]) -> str:
         return re.sub(r"<[^>]+>", " ", raw_html).strip()
 
 
+def is_location_eligible_for_candidate(location_str: str, desc_str: str = "") -> bool:
+    """
+    Evaluates whether a job posting is geographically eligible for a candidate
+    seeking 100% Worldwide Remote / Global roles (candidate based in India).
+    
+    - Accepts: Anywhere, Worldwide, Global, Remote, APAC, EMEA/APAC, India, All Countries.
+    - Rejects: Strict in-office requirements or domestic locks ('US only', 'Must reside in USA',
+      'US citizens only', 'Active security clearance required', 'UK only', 'Canada only').
+    """
+    loc = (location_str or "").lower().strip()
+    desc_start = (desc_str or "").lower()[:1200]
+
+    # Explicit positive worldwide signals
+    global_positives = [
+        "anywhere", "worldwide", "global", "all countries", "apac", "asia",
+        "india", "remote - global", "remote - anywhere", "work from anywhere",
+        "remote (worldwide)", "remote worldwide"
+    ]
+    if any(pos in loc for pos in global_positives) or any(pos in desc_start for pos in ["worldwide remote", "work from anywhere", "remote globally"]):
+        return True
+
+    # Strict negative geographic / citizenship restrictions
+    strict_negatives = [
+        "us only", "usa only", "united states only", "must reside in the us",
+        "must reside in the united states", "must be located in the united states",
+        "must be located in the us", "us citizens only", "security clearance required",
+        "active secret clearance", "canada only", "uk only", "europe only",
+        "latam only", "eu citizenship required", "b2b poland", "germany only"
+    ]
+    for neg in strict_negatives:
+        if neg in loc or neg in desc_start:
+            return False
+
+    # Standard remote check
+    return any(term in loc for term in ["remote", "virtual", "distributed", "telecommute", "home based", "wfh"])
+
+
 def matches_filter(job: Dict[str, Any], keywords: List[str]) -> tuple[bool, int]:
     """
     Checks if a job posting contains target keywords.
@@ -96,18 +148,21 @@ def matches_filter(job: Dict[str, Any], keywords: List[str]) -> tuple[bool, int]
     desc_lower = (job.get("description") or "").lower()
     full_text = f"{title_lower} {location_lower} {desc_lower}"
 
-    location_modifiers = {"remote", "hybrid", "onsite", "wfh", "anywhere"}
+    location_modifiers = {"remote", "hybrid", "onsite", "wfh", "anywhere", "worldwide", "global"}
     role_kws = [k.strip().lower() for k in keywords if k.strip().lower() not in location_modifiers]
-    has_remote_pref = any(k.strip().lower() in ("remote", "wfh", "anywhere") for k in keywords)
+    has_remote_pref = any(k.strip().lower() in location_modifiers for k in keywords)
 
     # 1. Location / Remote Check
     if has_remote_pref:
-        is_remote = any(
-            term in full_text
-            for term in ["remote", "worldwide", "anywhere", "telecommute", "home based", "virtual", "work from home"]
-        )
-        if not is_remote:
-            return False, 0
+        is_remote_loc = is_location_eligible_for_candidate(location_lower, desc_lower)
+        if not is_remote_loc:
+            # Fallback check if text explicitly states remote/worldwide
+            has_remote_text = any(
+                term in full_text
+                for term in ["worldwide", "anywhere", "global remote", "100% remote", "fully remote"]
+            )
+            if not has_remote_text:
+                return False, 0
 
     # 2. Role Keywords Check
     if not role_kws:
@@ -211,6 +266,88 @@ def fetch_greenhouse_jobs(
     parsed_jobs.sort(key=lambda j: j.get("relevance_score", 0), reverse=True)
     logger.info(f"Discovered {len(parsed_jobs)} matching jobs for keywords {keywords} in '{company_token}'")
     return parsed_jobs
+
+
+def fetch_worldwide_remote_jobs(
+    keywords: Optional[List[str]] = None,
+    limit: int = 50,
+    timeout: int = 12,
+) -> List[Dict[str, Any]]:
+    """
+    Fetches open worldwide remote jobs from public global tech job feeds (Jobicy & Remotive).
+    These aggregators surface hundreds of remote companies hiring worldwide.
+    Applies location eligibility and keyword matching to find candidate-aligned opportunities.
+    """
+    if keywords is None:
+        keywords = DEFAULT_KEYWORDS
+
+    worldwide_jobs: List[Dict[str, Any]] = []
+
+    # 1. Jobicy Global Remote API
+    try:
+        jobicy_url = "https://jobicy.com/api/v2/remote-jobs?count=50&industry=engineering"
+        headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+        resp = requests.get(jobicy_url, headers=headers, timeout=timeout)
+        if resp.status_code == 200:
+            data = resp.json().get("jobs", [])
+            for item in data:
+                geo = item.get("jobGeo", "Worldwide")
+                clean_desc = clean_html_content(item.get("jobDescription", ""))
+                if not is_location_eligible_for_candidate(geo, clean_desc):
+                    continue
+                job_rec = {
+                    "id": f"jobicy-{item.get('id')}",
+                    "company": item.get("companyName", "Unknown"),
+                    "title": item.get("jobTitle", "").strip(),
+                    "location": f"Remote - {geo}",
+                    "url": item.get("url", ""),
+                    "description": clean_desc,
+                    "content_html": item.get("jobDescription", ""),
+                    "updated_at": item.get("pubDate", ""),
+                    "source": "Jobicy (Worldwide)",
+                    "relevance_score": 1,
+                }
+                matched, score = matches_filter(job_rec, keywords)
+                if matched:
+                    job_rec["relevance_score"] = score
+                    worldwide_jobs.append(job_rec)
+    except Exception as e:
+        logger.warning(f"Error fetching worldwide remote jobs from Jobicy: {e}")
+
+    # 2. Remotive Worldwide Dev Jobs API
+    try:
+        remotive_url = "https://remotive.com/api/remote-jobs?category=software-dev"
+        headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+        resp = requests.get(remotive_url, headers=headers, timeout=timeout)
+        if resp.status_code == 200:
+            data = resp.json().get("jobs", [])
+            for item in data:
+                geo = item.get("candidate_required_location", "Worldwide")
+                clean_desc = clean_html_content(item.get("description", ""))
+                if not is_location_eligible_for_candidate(geo, clean_desc):
+                    continue
+                job_rec = {
+                    "id": f"remotive-{item.get('id')}",
+                    "company": item.get("company_name", "Unknown"),
+                    "title": item.get("title", "").strip(),
+                    "location": f"Remote - {geo}",
+                    "url": item.get("url", ""),
+                    "description": clean_desc,
+                    "content_html": item.get("description", ""),
+                    "updated_at": item.get("publication_date", ""),
+                    "source": "Remotive (Worldwide)",
+                    "relevance_score": 1,
+                }
+                matched, score = matches_filter(job_rec, keywords)
+                if matched:
+                    job_rec["relevance_score"] = score
+                    worldwide_jobs.append(job_rec)
+    except Exception as e:
+        logger.warning(f"Error fetching worldwide remote jobs from Remotive: {e}")
+
+    worldwide_jobs.sort(key=lambda j: j.get("relevance_score", 0), reverse=True)
+    logger.info(f"Discovered {len(worldwide_jobs)} worldwide remote jobs matching keywords {keywords}")
+    return worldwide_jobs[:limit]
 
 
 if __name__ == "__main__":

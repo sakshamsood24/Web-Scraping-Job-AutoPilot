@@ -27,7 +27,7 @@ load_dotenv()
 from db import get_supabase_client, SUPABASE_TABLE_NAME, log_application
 from evaluator import CANDIDATE_PROFILE, evaluate_job
 from executor import fill_job_application_sync
-from fetcher import fetch_greenhouse_jobs, POPULAR_TECH_COMPANIES
+from fetcher import fetch_greenhouse_jobs, fetch_worldwide_remote_jobs, POPULAR_TECH_COMPANIES
 
 app = FastAPI(
     title="JobPilot - Autonomous Job Search & Application Platform",
@@ -507,16 +507,23 @@ async def check_cv(req: CVCheckRequest):
 
 @app.get("/api/search-jobs")
 async def search_jobs(keywords: str = "remote,developer", limit: int = 15):
-    """Performs live search across top Greenhouse boards."""
+    """Performs live search across top Greenhouse boards and worldwide remote feeds."""
     kw_list = [k.strip() for k in keywords.split(",") if k.strip()]
     results = []
-    # Search Canonical, GitLab, Elastic, Stripe
-    for b in ["canonical", "gitlab", "elastic", "stripe"][:3]:
+    # Search top Greenhouse boards
+    for b in POPULAR_TECH_COMPANIES[:5]:
         try:
             jobs = fetch_greenhouse_jobs(b, keywords=kw_list, filter_by_keywords=True)
             results.extend(jobs)
             if len(results) >= limit:
                 break
+        except Exception:
+            pass
+    # If more opportunities needed, also query worldwide remote feeds
+    if len(results) < limit:
+        try:
+            ww = fetch_worldwide_remote_jobs(keywords=kw_list, limit=limit - len(results))
+            results.extend(ww)
         except Exception:
             pass
     return {"results": results[:limit], "count": len(results[:limit])}

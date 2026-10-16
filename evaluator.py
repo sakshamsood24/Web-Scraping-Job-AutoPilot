@@ -114,12 +114,14 @@ Job Description:
 {questions_section}
 
 Evaluation Guidelines:
-1. 'match_score': Score 0-100.
-   - High score (80-100): Strong PHP/CodeIgniter/Full-Stack focus, remote friendly.
-   - Moderate score (60-79): PHP/Laravel/Full-Stack or related web stack, remote friendly.
-   - Low score (<60): Non-PHP primary stacks (e.g., pure Java/Rust/Go) or heavy senior requirements exceeding 4 years.
-2. 'is_remote': Determine if the role supports remote work. Set True if remote is allowed, False if strictly on-site/hybrid only.
-3. 'custom_answers': Answers must be written from the first-person perspective of Alex Morgan, maintaining complete accuracy with the candidate profile.
+1. 'match_score': Score 0-100 based on technical stack alignment with Saksham Sood's profile (4+ years PHP, CodeIgniter, Laravel, Python, REST APIs, MySQL).
+   - High score (80-100): Strong PHP/Laravel/CodeIgniter or Full-Stack web engineering focus, remote/worldwide friendly.
+   - Moderate score (60-79): Modern backend/full-stack (Python, REST APIs, SQL, JavaScript) or adjacent web stack.
+   - Low score (<60): Non-matching stacks (e.g., pure Java/Rust/Go/Mobile) or heavy staff/director level exceeding 4 years.
+2. 'is_remote': Determine if the role supports remote work AND is geographically eligible for candidate Saksham Sood (located in India, seeking 100% Remote Global/Worldwide positions).
+   - Set True: If role is open Worldwide, Anywhere, Global, APAC, India, or allows international remote contractors.
+   - Set False: If strictly on-site/hybrid, or explicitly restricted to US/North American residents only, US citizenship required, or security clearance required. If ineligible, score must not exceed 25.
+3. 'custom_answers': Answers must be written from the first-person perspective of candidate Saksham Sood, maintaining complete consistency with his resume and experience.
 
 Return your evaluation following the required structured format.
 """
@@ -127,60 +129,79 @@ Return your evaluation following the required structured format.
 
 def _heuristic_fallback_evaluation(job_description: str, form_questions: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Fallback rule-based evaluator used when OpenAI API key is unavailable or offline.
+    Fallback rule-based evaluator used when OpenAI/Gemini API key is unavailable or offline.
     Ensures pipeline continuity and development testability.
     """
     jd_lower = job_description.lower()
     score = 40
     
-    # Keyword checks
+    # Keyword checks against Saksham Sood's core stack
     if "php" in jd_lower:
         score += 30
     if "codeigniter" in jd_lower:
         score += 20
     elif "laravel" in jd_lower or "mvc" in jd_lower:
-        score += 10
+        score += 15
         
-    if "full stack" in jd_lower or "full-stack" in jd_lower:
+    if "full stack" in jd_lower or "full-stack" in jd_lower or "backend" in jd_lower:
         score += 10
-    if "mysql" in jd_lower or "sql" in jd_lower:
+    if "mysql" in jd_lower or "sql" in jd_lower or "postgresql" in jd_lower:
         score += 5
-        
-    is_remote = any(kw in jd_lower for kw in ["remote", "work from home", "anywhere", "worldwide", "distributed team"])
-    if not is_remote:
-        score = max(0, score - 20)
+    if "python" in jd_lower or "rest" in jd_lower or "api" in jd_lower:
+        score += 5
+
+    # Location & geographic eligibility check
+    # Candidate Saksham Sood is based in India, seeking 100% Worldwide Remote / Global roles
+    strict_restrictions = [
+        "must reside in the us", "must reside in the united states", "us citizens only",
+        "security clearance", "active secret clearance", "must be located in the united states",
+        "must be located in the us", "us only", "authorized to work in the us without sponsorship",
+        "must be based in north america", "uk only", "eu citizenship required", "germany only"
+    ]
+    is_restricted = any(r in jd_lower for r in strict_restrictions)
+
+    is_remote = any(kw in jd_lower for kw in ["remote", "work from home", "anywhere", "worldwide", "distributed team", "apac", "global"])
+    if is_restricted:
+        is_remote = False
+        score = 0
+        reasoning = "Geographically ineligible: Posting has strict US/regional residency or citizenship restrictions."
+    elif not is_remote:
+        score = max(0, score - 30)
+        reasoning = f"Heuristic evaluation: Role lacks explicit remote designation (PHP={'php' in jd_lower}, CodeIgniter={'codeigniter' in jd_lower})."
+    else:
+        reasoning = f"Heuristic evaluation: Remote worldwide match (PHP={'php' in jd_lower}, CodeIgniter={'codeigniter' in jd_lower}, Remote={is_remote})."
 
     score = min(100, max(0, score))
     
     custom_answers = {
-        "years_of_php_experience": "4 years of production experience building full-stack applications with PHP and CodeIgniter/Laravel.",
-        "experience_with_codeigniter": "Extensive experience with CodeIgniter 3 and 4 developing modular MVC architectures and REST APIs.",
-        "salary_expectations": "$90,000 - $110,000 USD / year (flexible based on total benefits).",
-        "notice_period": "2 weeks (available immediately for urgent onboarding).",
-        "remote_work_experience": "Proven track record of asynchronous, self-directed remote teamwork with global teams.",
-        "authorized_to_work": "Yes, legally authorized to work remotely and do not require visa sponsorship."
+        "years_of_php_experience": "4+ years of professional production experience building scalable applications with PHP and CodeIgniter/Laravel.",
+        "experience_with_codeigniter": "Extensive experience with CodeIgniter 3 and 4 developing modular MVC architectures, custom libraries, and REST APIs.",
+        "salary_expectations": "$70,000 - $95,000 USD / year (flexible depending on compensation structure).",
+        "notice_period": "30 days (available for immediate transition).",
+        "remote_work_experience": "4+ years of proven track record delivering results asynchronously in distributed, remote-first engineering teams.",
+        "authorized_to_work": "Yes, legally authorized to work remotely as an international contractor / employee without visa sponsorship."
     }
 
     if form_questions:
         for q in form_questions:
             q_clean = q.lower()
             if "salary" in q_clean or "compensation" in q_clean:
-                custom_answers[q] = "$90,000 - $110,000 USD / year"
+                custom_answers[q] = "$70,000 - $95,000 USD / year"
             elif "php" in q_clean:
-                custom_answers[q] = "4 years of production PHP development (7.4, 8.x)."
+                custom_answers[q] = "4+ years of production PHP development (7.4, 8.x) with CodeIgniter and Laravel."
             elif "sponsor" in q_clean or "visa" in q_clean:
-                custom_answers[q] = "No, I do not require sponsorship."
+                custom_answers[q] = "No, I do not require visa sponsorship."
             elif "authorized" in q_clean or "legally" in q_clean:
                 custom_answers[q] = "Yes, I am authorized to work remotely."
             elif "start" in q_clean or "notice" in q_clean:
-                custom_answers[q] = "2 weeks"
+                custom_answers[q] = "30 days"
             else:
-                custom_answers[q] = "4 years full-stack web engineering experience specializing in PHP and modern web systems."
+                custom_answers[q] = "4+ years full-stack web engineering experience specializing in PHP, Python, and scalable database systems."
 
     return {
         "match_score": score,
         "is_remote": is_remote,
-        "reasoning": f"Heuristic evaluation: Found keywords (PHP={'php' in jd_lower}, CodeIgniter={'codeigniter' in jd_lower}, Remote={is_remote}).",
+        "reasoning": reasoning,
         "custom_answers": custom_answers
     }
 
@@ -217,9 +238,10 @@ def evaluate_job(
 
     system_content = (
         "You are an expert technical recruiting evaluator and career agent. "
-        "You evaluate job postings on behalf of candidate Alex Morgan, a Full-Stack PHP Developer "
-        "with 4 years of experience specializing in CodeIgniter and modern web technologies. "
-        "Assess technical overlap objectively, verify remote eligibility, and craft tailored answers."
+        "You evaluate job postings on behalf of candidate Saksham Sood, a Full-Stack Developer "
+        "with 4+ years of experience specializing in PHP (CodeIgniter, Laravel), Python, and modern web systems. "
+        "Candidate is based in India seeking 100% Remote Global/Worldwide positions. "
+        "Assess technical overlap objectively, verify remote/geographic eligibility, and craft tailored first-person answers."
     )
 
     truncated_jd = job_description[:12000] if len(job_description) > 12000 else job_description

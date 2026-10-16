@@ -13,7 +13,12 @@ from dotenv import load_dotenv
 
 # Import pipeline modules
 from db import is_already_applied, get_all_applied_urls, log_application, get_supabase_client, SUPABASE_SCHEMA_SQL
-from fetcher import fetch_greenhouse_jobs, DEFAULT_KEYWORDS, POPULAR_TECH_COMPANIES
+from fetcher import (
+    fetch_greenhouse_jobs,
+    fetch_worldwide_remote_jobs,
+    DEFAULT_KEYWORDS,
+    POPULAR_TECH_COMPANIES,
+)
 from evaluator import evaluate_job
 from executor import fill_job_application_sync
 
@@ -114,19 +119,25 @@ def run_autopilot(
             "To connect PostgreSQL, set SUPABASE_URL and SUPABASE_KEY in your .env file."
         )
 
-    # Expand "all", "auto", or "any" to all popular tech companies
+    # Expand "all", "auto", "worldwide", "global", or "any" to all popular tech companies + global remote feeds
     expanded_boards: List[str] = []
+    include_worldwide_feed = False
     for b in boards:
         b_clean = b.strip().lower()
-        if b_clean in ("all", "auto", "popular", "any", "top"):
+        if b_clean in ("all", "auto", "popular", "any", "top", "worldwide", "global", "remote"):
             expanded_boards.extend(POPULAR_TECH_COMPANIES)
+            include_worldwide_feed = True
         elif b_clean:
             expanded_boards.append(b.strip())
     
     unique_boards = list(dict.fromkeys(expanded_boards)) if expanded_boards else POPULAR_TECH_COMPANIES
+    if not expanded_boards:
+        include_worldwide_feed = True
 
     # 2. Discovery Phase
     all_discovered_jobs: List[Dict[str, Any]] = []
+
+    # A. Scrape Greenhouse company boards
     for board_token in unique_boards:
         try:
             jobs = fetch_greenhouse_jobs(board_token, keywords=keywords, filter_by_keywords=True)
@@ -134,7 +145,16 @@ def run_autopilot(
         except Exception as e:
             logger.error(f"Error fetching jobs from board '{board_token}': {e}")
 
-    logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across {len(unique_boards)} boards.")
+    # B. If worldwide/global is enabled, also scrape worldwide remote job feeds (Jobicy, Remotive)
+    if include_worldwide_feed:
+        try:
+            worldwide_jobs = fetch_worldwide_remote_jobs(keywords=keywords, limit=40)
+            all_discovered_jobs.extend(worldwide_jobs)
+            logger.info(f"Discovered {len(worldwide_jobs)} additional candidate jobs from global worldwide feeds.")
+        except Exception as e:
+            logger.error(f"Error fetching worldwide remote feeds: {e}")
+
+    logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across {len(unique_boards)} boards and worldwide feeds.")
 
     # Deduplication using batch pre-fetched URLs from Supabase
     applied_urls = get_all_applied_urls()
