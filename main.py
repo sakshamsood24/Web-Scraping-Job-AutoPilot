@@ -12,7 +12,7 @@ from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 # Import pipeline modules
-from db import is_already_applied, log_application, get_supabase_client, SUPABASE_SCHEMA_SQL
+from db import is_already_applied, get_all_applied_urls, log_application, get_supabase_client, SUPABASE_SCHEMA_SQL
 from fetcher import fetch_greenhouse_jobs, DEFAULT_KEYWORDS, POPULAR_TECH_COMPANIES
 from evaluator import evaluate_job
 from executor import fill_job_application_sync
@@ -134,9 +134,30 @@ def run_autopilot(
 
     logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across {len(unique_boards)} boards.")
 
+    # Deduplication using batch pre-fetched URLs from Supabase
+    applied_urls = get_all_applied_urls()
+    unapplied_jobs = [j for j in all_discovered_jobs if j["url"] not in applied_urls]
+    logger.info(f"Deduplication: {len(all_discovered_jobs) - len(unapplied_jobs)} already in database, {len(unapplied_jobs)} unapplied fresh jobs remaining.")
+
+    if not unapplied_jobs:
+        logger.info("ℹ️ No new unapplied jobs found matching the criteria in this run.")
+        return []
+
+    # Prioritize and interleave across companies to prevent single-company starvation
+    by_company: Dict[str, List[Dict[str, Any]]] = {}
+    for j in unapplied_jobs:
+        by_company.setdefault(j["company"], []).append(j)
+
+    interleaved_jobs: List[Dict[str, Any]] = []
+    max_len = max(len(v) for v in by_company.values())
+    for i in range(max_len):
+        for comp_name, comp_jobs in by_company.items():
+            if i < len(comp_jobs):
+                interleaved_jobs.append(comp_jobs[i])
+
     # Apply limit
-    jobs_to_process = all_discovered_jobs[:job_limit]
-    logger.info(f"Processing up to {len(jobs_to_process)} jobs in this batch.")
+    jobs_to_process = interleaved_jobs[:job_limit]
+    logger.info(f"Processing up to {len(jobs_to_process)} fresh jobs in this batch.")
 
     pipeline_summary: List[Dict[str, Any]] = []
 
@@ -149,17 +170,9 @@ def run_autopilot(
         logger.info(f"[{idx}/{len(jobs_to_process)}] Inspecting: '{job_title}' at '{company}'")
         logger.info(f"URL: {job_url}")
 
-        # Step A: Check if already applied / processed
-        if is_already_applied(job_url):
+        # Step A: Double check deduplication
+        if is_already_applied(job_url, known_urls=applied_urls):
             logger.info(f"⏩ [ALREADY PROCESSED] Job '{job_url}' already exists in database. Skipping.")
-            pipeline_summary.append({
-                "job_title": job_title,
-                "company": company,
-                "url": job_url,
-                "status": "already_processed",
-                "match_score": None,
-                "screenshot": None,
-            })
             continue
 
         # Step B: LLM Evaluation Layer

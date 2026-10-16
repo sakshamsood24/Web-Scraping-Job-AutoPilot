@@ -61,6 +61,8 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 # Shared log queue for streaming live logs via SSE
 log_queues: List[asyncio.Queue] = []
 is_pipeline_running = False
+current_running_loop_id: Optional[int] = None
+current_pipeline_status: str = "Idle"
 
 
 class LogHandler(logging.Handler):
@@ -90,6 +92,7 @@ root_logger.addHandler(sse_handler)
 # Pydantic Request Models
 # -------------------------------------------------------------
 class RunPipelineRequest(BaseModel):
+    loop_id: Optional[int] = None
     boards: str = "all"
     keywords: str = "remote,php,full stack"
     min_score: int = 70
@@ -381,6 +384,84 @@ async def create_loop(req: NewLoopRequest):
     return {"success": True, "loop": new_item}
 
 
+@app.post("/api/loops/{loop_id}/toggle")
+async def toggle_loop_status(loop_id: int):
+    """Toggles loop between 'active' and 'paused'."""
+    if not LOOPS_FILE.is_file():
+        raise HTTPException(status_code=404, detail="Loops file not found.")
+    try:
+        with open(LOOPS_FILE, "r") as f:
+            loops = json.load(f)
+        found = False
+        new_status = "active"
+        for l in loops:
+            if l.get("id") == loop_id:
+                found = True
+                l["status"] = "paused" if l.get("status") == "active" else "active"
+                new_status = l["status"]
+                break
+        if not found:
+            raise HTTPException(status_code=404, detail=f"Loop {loop_id} not found.")
+        with open(LOOPS_FILE, "w") as f:
+            json.dump(loops, f, indent=2)
+        return {"success": True, "status": new_status, "loops": loops}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/loops/{loop_id}/run")
+async def run_single_loop(loop_id: int, background_tasks: BackgroundTasks):
+    """Triggers execution of a specific loop immediately."""
+    global is_pipeline_running
+    if is_pipeline_running:
+        raise HTTPException(status_code=409, detail="A search loop is already currently running. Please wait for it to complete.")
+
+    if not LOOPS_FILE.is_file():
+        raise HTTPException(status_code=404, detail="Loops file not found.")
+    with open(LOOPS_FILE, "r") as f:
+        loops = json.load(f)
+
+    target_loop = next((l for l in loops if l.get("id") == loop_id), None)
+    if not target_loop:
+        raise HTTPException(status_code=404, detail=f"Loop {loop_id} not found.")
+
+    req = RunPipelineRequest(
+        loop_id=target_loop.get("id"),
+        boards=target_loop.get("boards", "all"),
+        keywords=target_loop.get("keywords", "remote, full stack"),
+        min_score=target_loop.get("min_score", 70),
+        limit=5,
+        headless=True
+    )
+    background_tasks.add_task(_execute_pipeline_task, req)
+    return {"success": True, "message": f"Loop '{target_loop.get('name')}' started in background."}
+
+
+@app.delete("/api/loops/{loop_id}")
+async def delete_loop(loop_id: int):
+    """Deletes a loop from loops.json."""
+    if not LOOPS_FILE.is_file():
+        raise HTTPException(status_code=404, detail="Loops file not found.")
+    with open(LOOPS_FILE, "r") as f:
+        loops = json.load(f)
+    loops = [l for l in loops if l.get("id") != loop_id]
+    with open(LOOPS_FILE, "w") as f:
+        json.dump(loops, f, indent=2)
+    return {"success": True, "loops": loops}
+
+
+@app.get("/api/loops/status")
+async def get_loops_status():
+    """Returns the live execution state of the loop runner."""
+    return {
+        "is_running": is_pipeline_running,
+        "active_loop_id": current_running_loop_id,
+        "status_text": current_pipeline_status
+    }
+
+
 @app.get("/api/questions")
 async def get_screening_questions():
     """Returns stored screening questions and AI generated answers."""
@@ -486,8 +567,10 @@ async def upload_resume(file: UploadFile = File(...)):
 
 def _execute_pipeline_task(req: RunPipelineRequest):
     """Worker function that runs the autopilot pipeline in background."""
-    global is_pipeline_running
+    global is_pipeline_running, current_running_loop_id, current_pipeline_status
     is_pipeline_running = True
+    current_running_loop_id = req.loop_id
+    current_pipeline_status = f"Searching Greenhouse boards for '{req.keywords}'..."
     try:
         from main import run_autopilot
         boards_list = [b.strip() for b in req.boards.split(",") if b.strip()]
@@ -495,7 +578,8 @@ def _execute_pipeline_task(req: RunPipelineRequest):
         resume_path = os.getenv("RESUME_PATH", "assets/Saksham_Sood_Resume(1).pdf")
 
         logging.info(f"▶️ Launching Loop Autopilot: boards={boards_list}, min_score={req.min_score}, limit={req.limit}")
-        run_autopilot(
+        current_pipeline_status = f"Scraping & evaluating opportunities across {len(boards_list)} boards..."
+        results = run_autopilot(
             boards=boards_list,
             keywords=kw_list,
             min_score=req.min_score,
@@ -503,11 +587,33 @@ def _execute_pipeline_task(req: RunPipelineRequest):
             headless=req.headless,
             job_limit=req.limit,
         )
-        logging.info("🏁 Autopilot loop finished successfully.")
+        new_drafted = sum(1 for r in results if r.get("status") == "drafted")
+        new_applied = sum(1 for r in results if r.get("status") == "applied")
+        total_new_matches = new_drafted + new_applied
+
+        # Update matches_count in loops.json
+        if LOOPS_FILE.is_file():
+            try:
+                with open(LOOPS_FILE, "r") as f:
+                    loops = json.load(f)
+                for l in loops:
+                    if (req.loop_id and l.get("id") == req.loop_id) or (l.get("keywords") == req.keywords):
+                        l["matches_count"] = l.get("matches_count", 0) + total_new_matches
+                        l["applied_count"] = l.get("applied_count", 0) + new_applied
+                        l["last_run"] = datetime.now(timezone.utc).isoformat()
+                with open(LOOPS_FILE, "w") as f:
+                    json.dump(loops, f, indent=2)
+            except Exception as le:
+                logging.error(f"Failed to update loops.json: {le}")
+
+        current_pipeline_status = f"Finished! Found {total_new_matches} new qualified matches."
+        logging.info(f"🏁 Autopilot loop finished successfully. Found {total_new_matches} new matches.")
     except Exception as e:
+        current_pipeline_status = f"Error: {e}"
         logging.error(f"❌ Error during Autopilot run: {e}")
     finally:
         is_pipeline_running = False
+        current_running_loop_id = None
 
 
 @app.post("/api/run-autopilot")

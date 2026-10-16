@@ -77,12 +77,37 @@ def get_supabase_client():
 _local_url_cache: set[str] = set()
 
 
-def is_already_applied(job_url: str) -> bool:
+def get_all_applied_urls() -> set[str]:
+    """
+    Fetches all recorded job URLs from Supabase in a single batch query.
+    Used for lightning-fast O(1) in-memory deduplication during discovery loops.
+    """
+    client = get_supabase_client()
+    urls = set(_local_url_cache)
+    if client is None:
+        return urls
+
+    try:
+        response = client.table(SUPABASE_TABLE_NAME).select("job_url").execute()
+        if response.data:
+            for item in response.data:
+                u = item.get("job_url")
+                if u:
+                    urls.add(u)
+                    _local_url_cache.add(u)
+        logger.info(f"Loaded {len(urls)} previously processed job URLs from Supabase for fast deduplication.")
+    except Exception as e:
+        logger.error(f"Error fetching all applied URLs from Supabase: {e}")
+    return urls
+
+
+def is_already_applied(job_url: str, known_urls: Optional[set[str]] = None) -> bool:
     """
     Checks if a job URL has already been recorded in the applications table.
     
     Args:
         job_url: The canonical URL of the job posting.
+        known_urls: Optional pre-fetched set of applied URLs for O(1) lookup.
         
     Returns:
         bool: True if application exists, False otherwise.
@@ -90,12 +115,15 @@ def is_already_applied(job_url: str) -> bool:
     if not job_url:
         return False
 
+    if known_urls is not None:
+        return job_url in known_urls
+
+    if job_url in _local_url_cache:
+        return True
+
     client = get_supabase_client()
     if client is None:
-        # Fallback to in-memory cache if Supabase credentials are not set
-        is_cached = job_url in _local_url_cache
-        logger.debug(f"[Local Cache] is_already_applied({job_url}) -> {is_cached}")
-        return is_cached
+        return False
 
     try:
         response = (
@@ -106,6 +134,8 @@ def is_already_applied(job_url: str) -> bool:
             .execute()
         )
         exists = bool(response.data and len(response.data) > 0)
+        if exists:
+            _local_url_cache.add(job_url)
         logger.debug(f"[Supabase] is_already_applied({job_url}) -> {exists}")
         return exists
     except Exception as e:

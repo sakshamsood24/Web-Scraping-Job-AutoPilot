@@ -689,6 +689,16 @@
     .floating-chat-bubble:hover {
       transform: scale(1.08);
     }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
   </style>
 </head>
 <body>
@@ -890,10 +900,36 @@
       </div>
     </div>
 
-    <!-- OTHER TAB VIEWS (Overview, Loops, Questions, CV Checker) -->
+    <!-- MY LOOPS VIEW -->
     <div class="page-content" id="view-loops" style="display: none;">
-      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px;">My Automated Campaigns (Loops)</h2>
-      <div id="loops-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h2 style="font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px;">My Automated Campaigns (Loops)</h2>
+          <p style="font-size: 13.5px; color: var(--text-muted);">
+            Autonomous engines that continuously search 11 verified tech boards, evaluate job descriptions against your resume, and generate drafted applications.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-reset-filters" onclick="loadLoops()">🔄 Refresh</button>
+          <button class="btn-new-loop" onclick="openNewLoopModal()">+ New Loop</button>
+        </div>
+      </div>
+
+      <!-- Live Execution Progress Banner -->
+      <div id="loops-live-banner" style="display: none; background: #e8f0fe; border: 1px solid #c2e7ff; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="spinner-small" style="width: 22px; height: 22px; border: 2.5px solid #1a73e8; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0;"></div>
+            <div>
+              <div style="font-weight: 600; font-size: 14px; color: #1a73e8;" id="loop-banner-title">Loop Running...</div>
+              <div style="font-size: 12.5px; color: var(--text-body);" id="loop-banner-status">Searching 11 boards and scoring opportunities...</div>
+            </div>
+          </div>
+          <span class="badge-status status-blue" style="font-weight: 600; font-size: 11px;">AUTOPILOT SEARCHING</span>
+        </div>
+      </div>
+
+      <div id="loops-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px;"></div>
     </div>
 
     <div class="page-content" id="view-questions" style="display: none;">
@@ -1254,30 +1290,250 @@
       }
     }
 
+    // Toast notification utility
+    function showToast(message, type = 'success') {
+      let toast = document.getElementById('jp-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'jp-toast';
+        toast.style.cssText = 'position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #202124; color: white; padding: 12px 22px; border-radius: 8px; font-size: 13.5px; font-weight: 500; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; transition: all 0.3s ease; opacity: 0; pointer-events: none;';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = (type === 'success' ? '<span>✅</span> ' : (type === 'error' ? '<span>❌</span> ' : '<span>ℹ️</span> ')) + message;
+      toast.style.pointerEvents = 'auto';
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(10px)';
+        toast.style.pointerEvents = 'none';
+      }, 4000);
+    }
+
+    let activeLoopPollingInterval = null;
+
     // Load Loops View
     async function loadLoops() {
       const cont = document.getElementById('loops-container');
       try {
         const res = await fetch('/api/loops');
         const data = await res.json();
-        cont.innerHTML = (data.loops || []).map(loop => `
-          <div class="filter-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="font-size: 15px; font-weight: 600;">${loop.name}</h3>
-              <span class="badge-status email-sent">${loop.status}</span>
+        const loops = data.loops || [];
+
+        if (loops.length === 0) {
+          cont.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 48px; background: white; border-radius: 8px; border: 1px dashed var(--border-color);">
+              <h3 style="font-size: 16px; margin-bottom: 8px;">No Automated Loops Configured</h3>
+              <p style="color: var(--text-muted); margin-bottom: 16px;">Create your first search & apply loop to continuously discover tech jobs.</p>
+              <button class="btn-new-loop" onclick="openNewLoopModal()">+ Create Loop</button>
             </div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Keywords: <code>${loop.keywords}</code></p>
-            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-body); margin-bottom: 14px;">
-              <span>Matches: <strong>${loop.matches_count || 0}</strong></span>
-              <span>Min Score: <strong>${loop.min_score}%</strong></span>
+          `;
+          return;
+        }
+
+        cont.innerHTML = loops.map(loop => {
+          const isActive = loop.status === 'active';
+          const kwPills = (loop.keywords || '').split(',').map(k => k.trim()).filter(Boolean).map(k => `
+            <span style="background: #e8f0fe; color: #1967d2; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; display: inline-block;">${k}</span>
+          `).join(' ');
+
+          const boardLabel = (loop.boards === 'all' || !loop.boards) ? '11 Top Tech Companies (All)' : loop.boards;
+
+          return `
+            <div class="filter-card" id="loop-card-${loop.id}" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid ${isActive ? '#188038' : '#dadce0'}; transition: all 0.2s ease;">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px;">
+                  <h3 style="font-size: 16px; font-weight: 600; color: var(--text-dark);">${loop.name}</h3>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="badge-status ${isActive ? 'status-teal' : ''}" style="font-size: 11.5px; ${!isActive ? 'background:#f1f3f4; color:#5f6368;' : ''}">
+                      ${isActive ? '● Active' : '⏸ Paused'}
+                    </span>
+                    <button onclick="toggleLoop(${loop.id})" title="${isActive ? 'Pause Loop' : 'Activate Loop'}" style="background: none; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; color: var(--text-body);">
+                      ${isActive ? '⏸' : '▶'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                  <div style="font-size: 11px; font-weight: 600; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px;">Keywords</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                    ${kwPills || '<span style="color:var(--text-muted); font-size:12px;">None</span>'}
+                  </div>
+                </div>
+
+                <div style="margin-bottom: 14px; font-size: 12px; color: var(--text-muted);">
+                  <strong>Boards:</strong> <span style="color: var(--text-body);">${boardLabel}</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: #f8f9fa; border-radius: 6px; padding: 10px; margin-bottom: 16px; text-align: center;">
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Matches</div>
+                    <div style="font-size: 17px; font-weight: 700; color: #1967d2;">${loop.matches_count || 0}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Applied</div>
+                    <div style="font-size: 17px; font-weight: 700; color: #188038;">${loop.applied_count || 0}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Min Score</div>
+                    <div style="font-size: 17px; font-weight: 700; color: var(--text-dark);">${loop.min_score || 70}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                  <button id="run-btn-${loop.id}" class="btn-apply-filters" style="flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="runLoopById(${loop.id}, '${escapeHtml(loop.name)}')">
+                    <span>▶</span> Run &amp; Search Now
+                  </button>
+                  <button class="btn-reset-filters" style="padding: 8px 12px; font-size: 13px;" title="View all matching jobs in table" onclick="filterMatchesByKeywords('${escapeHtml(loop.keywords)}')">
+                    🔍 Matches
+                  </button>
+                  <button class="btn-reset-filters" style="padding: 8px 10px; color: #d93025; font-size: 13px;" title="Delete Loop" onclick="deleteLoopById(${loop.id})">
+                    🗑
+                  </button>
+                </div>
+                ${loop.last_run ? `<div style="font-size: 11px; color: var(--text-light); text-align: right;">Last executed: ${new Date(loop.last_run).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>` : ''}
+              </div>
             </div>
-            <button class="btn-apply-filters" style="width: 100%;" onclick="runLoopNow('${loop.boards}', '${loop.keywords}', ${loop.min_score})">
-              ▶ Run Loop Now
-            </button>
-          </div>
-        `).join('');
+          `;
+        }).join('');
+
+        checkPipelineStatus();
       } catch (e) {
-        cont.innerHTML = '<p>Failed to load loops.</p>';
+        cont.innerHTML = '<p style="color: red; padding: 20px;">Failed to load loops: ' + e.message + '</p>';
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // Toggle active / paused
+    async function toggleLoop(loopId) {
+      try {
+        const res = await fetch(`/api/loops/${loopId}/toggle`, { method: 'POST' });
+        const json = await res.json();
+        if (json.success) {
+          showToast(`Loop status updated to ${json.status}!`);
+          loadLoops();
+        }
+      } catch (e) {
+        showToast('Error toggling loop: ' + e.message, 'error');
+      }
+    }
+
+    // Delete Loop
+    async function deleteLoopById(loopId) {
+      if (!confirm('Are you sure you want to delete this Loop campaign?')) return;
+      try {
+        const res = await fetch(`/api/loops/${loopId}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Loop deleted successfully.');
+          loadLoops();
+        }
+      } catch (e) {
+        showToast('Error deleting loop: ' + e.message, 'error');
+      }
+    }
+
+    // Run Loop by ID
+    async function runLoopById(loopId, loopName) {
+      const btn = document.getElementById(`run-btn-${loopId}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<div class="spinner-small" style="width: 14px; height: 14px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block;"></div> Searching...`;
+      }
+
+      const banner = document.getElementById('loops-live-banner');
+      if (banner) {
+        banner.style.display = 'block';
+        banner.style.background = '#e8f0fe';
+        banner.style.borderColor = '#c2e7ff';
+        document.getElementById('loop-banner-title').textContent = `Running Loop: ${loopName}`;
+        document.getElementById('loop-banner-status').textContent = 'Connecting to Greenhouse boards & discovering candidate roles...';
+      }
+
+      try {
+        const res = await fetch(`/api/loops/${loopId}/run`, { method: 'POST' });
+        if (res.status === 409) {
+          showToast('A search loop is already currently in progress. Please wait.', 'info');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>▶</span> Run &amp; Search Now';
+          }
+          return;
+        }
+        showToast(`🚀 Loop started! Scraping Greenhouse boards for ${loopName}...`);
+        startStatusPolling(loopId);
+      } catch (e) {
+        showToast('Failed to start loop: ' + e.message, 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>▶</span> Run &amp; Search Now';
+        }
+      }
+    }
+
+    function startStatusPolling(loopId) {
+      if (activeLoopPollingInterval) clearInterval(activeLoopPollingInterval);
+
+      activeLoopPollingInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/loops/status');
+          const data = await res.json();
+
+          if (data.status_text) {
+            const statusEl = document.getElementById('loop-banner-status');
+            if (statusEl) statusEl.textContent = data.status_text;
+          }
+
+          if (!data.is_running) {
+            clearInterval(activeLoopPollingInterval);
+            activeLoopPollingInterval = null;
+
+            const banner = document.getElementById('loops-live-banner');
+            if (banner) {
+              banner.style.background = '#e6f4ea';
+              banner.style.borderColor = '#ceead6';
+              document.getElementById('loop-banner-title').textContent = '🎉 Loop Run Completed!';
+              document.getElementById('loop-banner-status').textContent = data.status_text || 'Qualified jobs evaluated and drafted in database.';
+              setTimeout(() => { banner.style.display = 'none'; banner.style.background = '#e8f0fe'; banner.style.borderColor = '#c2e7ff'; }, 6000);
+            }
+
+            showToast('🎉 Search & evaluation complete! Matching jobs drafted in Supabase.');
+            loadLoops();
+            fetchMatches();
+          }
+        } catch (e) {
+          console.error('Status poll error:', e);
+        }
+      }, 1500);
+    }
+
+    async function checkPipelineStatus() {
+      try {
+        const res = await fetch('/api/loops/status');
+        const data = await res.json();
+        const banner = document.getElementById('loops-live-banner');
+        if (data.is_running && banner) {
+          banner.style.display = 'block';
+          document.getElementById('loop-banner-title').textContent = 'Autopilot Loop Running...';
+          document.getElementById('loop-banner-status').textContent = data.status_text || 'Scraping and matching roles...';
+          if (!activeLoopPollingInterval) startStatusPolling(data.active_loop_id);
+        }
+      } catch (e) {}
+    }
+
+    function filterMatchesByKeywords(keywords) {
+      switchView('matches');
+      const firstKw = (keywords || '').split(',')[0].trim();
+      const input = document.getElementById('filter-desc');
+      if (input) {
+        input.value = firstKw;
+        applyFilters();
       }
     }
 
@@ -1285,9 +1541,17 @@
       fetch('/api/run-autopilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ boards: boards, keywords: keywords, min_score: minScore, limit: 10 })
+        body: JSON.stringify({ boards: boards, keywords: keywords, min_score: minScore, limit: 5 })
+      }).then(res => {
+        if (res.status === 409) {
+          showToast('A loop is already in progress. Please wait.', 'info');
+        } else {
+          showToast('🚀 Autopilot started! Searching all 11 Greenhouse boards...');
+          startStatusPolling();
+        }
+      }).catch(e => {
+        showToast('Error: ' + e.message, 'error');
       });
-      alert('🚀 Loop execution started! Auto-discovering jobs and matching with your resume.');
     }
 
     // Questions View

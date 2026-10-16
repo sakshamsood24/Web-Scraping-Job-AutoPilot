@@ -82,18 +82,48 @@ def clean_html_content(raw_html: Optional[str]) -> str:
         return re.sub(r"<[^>]+>", " ", raw_html).strip()
 
 
-def matches_filter(job: Dict[str, Any], keywords: List[str]) -> bool:
+def matches_filter(job: Dict[str, Any], keywords: List[str]) -> tuple[bool, int]:
     """
-    Checks if a job posting contains any of the required keywords.
-    Searches across title, location, and description text.
+    Checks if a job posting contains target keywords.
+    Distinguishes role/skill keywords from location modifiers ('remote').
+    Returns (is_matched: bool, relevance_score: int).
     """
-    searchable_text = f"{job.get('title', '')} {job.get('location', '')} {job.get('description', '')}".lower()
-    for kw in keywords:
-        kw_clean = kw.lower().strip()
-        # Word boundary or phrase check
-        if re.search(r"\b" + re.escape(kw_clean) + r"\b", searchable_text, re.IGNORECASE):
-            return True
-    return False
+    if not keywords:
+        return True, 1
+
+    title_lower = (job.get("title") or "").lower()
+    location_lower = (job.get("location") or "").lower()
+    desc_lower = (job.get("description") or "").lower()
+    full_text = f"{title_lower} {location_lower} {desc_lower}"
+
+    location_modifiers = {"remote", "hybrid", "onsite", "wfh", "anywhere"}
+    role_kws = [k.strip().lower() for k in keywords if k.strip().lower() not in location_modifiers]
+    has_remote_pref = any(k.strip().lower() in ("remote", "wfh", "anywhere") for k in keywords)
+
+    # 1. Location / Remote Check
+    if has_remote_pref:
+        is_remote = any(
+            term in full_text
+            for term in ["remote", "worldwide", "anywhere", "telecommute", "home based", "virtual", "work from home"]
+        )
+        if not is_remote:
+            return False, 0
+
+    # 2. Role Keywords Check
+    if not role_kws:
+        return True, 1
+
+    matched_in_title = any(re.search(r"\b" + re.escape(kw) + r"\b", title_lower, re.IGNORECASE) for kw in role_kws)
+    matched_in_desc = any(re.search(r"\b" + re.escape(kw) + r"\b", desc_lower, re.IGNORECASE) for kw in role_kws)
+
+    if matched_in_title:
+        # Highest relevance: Title directly matches tech keywords
+        return True, 10
+    elif matched_in_desc:
+        # Good relevance: Description contains tech stack
+        return True, 5
+
+    return False, 0
 
 
 def fetch_greenhouse_jobs(
@@ -106,21 +136,13 @@ def fetch_greenhouse_jobs(
     Fetches job postings from a Greenhouse board and filters them based on keywords.
     
     Args:
-        board_url_or_token: Full Greenhouse URL or company slug (e.g. 'automattic').
+        board_url_or_token: Full Greenhouse URL or company slug (e.g. 'canonical').
         keywords: List of keywords to filter by (default: ['remote', 'php', 'full stack']).
         filter_by_keywords: Whether to filter out jobs missing target keywords.
         timeout: Request timeout in seconds.
         
     Returns:
-        List[Dict[str, Any]]: Filtered list of job postings, each with:
-            - id: str/int
-            - title: str
-            - company: str
-            - location: str
-            - url: str (application link)
-            - description: str (clean plain text JD)
-            - content_html: str (raw HTML JD)
-            - updated_at: str
+        List[Dict[str, Any]]: Filtered list of job postings sorted by relevance.
     """
     if keywords is None:
         keywords = DEFAULT_KEYWORDS
@@ -170,18 +192,23 @@ def fetch_greenhouse_jobs(
             "description": clean_desc,
             "content_html": raw_html,
             "updated_at": updated_at,
+            "relevance_score": 1,
         }
 
         # Apply keyword filtering if enabled
         if filter_by_keywords:
-            if matches_filter(job_record, keywords):
+            matched, score = matches_filter(job_record, keywords)
+            if matched:
+                job_record["relevance_score"] = score
                 parsed_jobs.append(job_record)
-                logger.debug(f"Matched job: [{title}] ({location_name})")
+                logger.debug(f"Matched job: [{title}] ({location_name}) score={score}")
             else:
                 logger.debug(f"Filtered out: [{title}] ({location_name})")
         else:
             parsed_jobs.append(job_record)
 
+    # Sort parsed jobs by relevance score descending (title matches first)
+    parsed_jobs.sort(key=lambda j: j.get("relevance_score", 0), reverse=True)
     logger.info(f"Discovered {len(parsed_jobs)} matching jobs for keywords {keywords} in '{company_token}'")
     return parsed_jobs
 
