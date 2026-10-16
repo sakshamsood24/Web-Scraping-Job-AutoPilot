@@ -1,0 +1,299 @@
+"""
+main.py - Orchestrator for Headless Autonomous Job Application Pipeline ("Autopilot")
+Discovers remote Full-Stack PHP/CodeIgniter roles, evaluates them via LangChain LLM,
+logs to Supabase PostgreSQL, and automates form filling headlessly via Playwright.
+"""
+
+import os
+import sys
+import argparse
+import logging
+from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+# Import pipeline modules
+from db import is_already_applied, log_application, get_supabase_client, SUPABASE_SCHEMA_SQL
+from fetcher import fetch_greenhouse_jobs, DEFAULT_KEYWORDS
+from evaluator import evaluate_job
+from executor import fill_job_application_sync
+
+# Setup colored/structured console logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("JobAutopilot.Main")
+
+
+def parse_arguments() -> argparse.Namespace:
+    """Parses command-line arguments for the autopilot pipeline."""
+    parser = argparse.ArgumentParser(
+        description="Headless Autonomous Job Application Pipeline (Autopilot)"
+    )
+    parser.add_argument(
+        "--boards",
+        type=str,
+        default=os.getenv("DEFAULT_GREENHOUSE_BOARDS", "canonical"),
+        help="Comma-separated Greenhouse board tokens or full URLs (e.g., 'canonical,automattic')"
+    )
+    parser.add_argument(
+        "--keywords",
+        type=str,
+        default=",".join(DEFAULT_KEYWORDS),
+        help="Comma-separated keywords to filter roles (default: 'remote,php,full stack')"
+    )
+    parser.add_argument(
+        "--min-score",
+        type=int,
+        default=int(os.getenv("MIN_MATCH_SCORE", "70")),
+        help="Minimum LLM match score (0-100) required to initiate application (default: 70)"
+    )
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default=os.getenv("RESUME_PATH", "assets/resume_alex_morgan.pdf"),
+        help="Path to resume file (PDF/DOCX) for programmatic upload"
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        default=os.getenv("HEADLESS", "true").lower() in ("true", "1", "yes"),
+        help="Run Playwright Chromium browser in headless mode (default: True)"
+    )
+    parser.add_argument(
+        "--no-headless",
+        dest="headless",
+        action="store_false",
+        help="Run Playwright with visible browser UI for visual debugging"
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=5,
+        help="Maximum number of candidate jobs to evaluate per run (default: 5)"
+    )
+    parser.add_argument(
+        "--print-schema",
+        action="store_true",
+        help="Print the Supabase SQL schema and exit"
+    )
+    return parser.parse_args()
+
+
+def run_autopilot(
+    boards: List[str],
+    keywords: List[str],
+    min_score: int,
+    resume_path: str,
+    headless: bool = True,
+    job_limit: int = 5,
+) -> List[Dict[str, Any]]:
+    """
+    Executes the end-to-end autopilot workflow:
+    1. Discovery: Scrape Greenhouse job boards with keyword filtering
+    2. Deduplication: Check Supabase DB to avoid double-applying
+    3. Evaluation: Score role and generate answers using LangChain ChatOpenAI
+    4. Execution: Headlessly autofill application and upload resume with Playwright
+    5. Persistence: Record status and screenshots in Supabase PostgreSQL
+    """
+    logger.info("=" * 60)
+    logger.info("🚀 Starting Job Application Autopilot Pipeline")
+    logger.info(f"Target Boards: {boards}")
+    logger.info(f"Keywords: {keywords}")
+    logger.info(f"Min Match Score: {min_score} | Resume: {resume_path} | Headless: {headless}")
+    logger.info("=" * 60)
+
+    # 1. Verify DB status
+    client = get_supabase_client()
+    if client is None:
+        logger.warning(
+            "Supabase client running in offline/memory cache mode. "
+            "To connect PostgreSQL, set SUPABASE_URL and SUPABASE_KEY in your .env file."
+        )
+
+    # 2. Discovery Phase
+    all_discovered_jobs: List[Dict[str, Any]] = []
+    for board in boards:
+        board_token = board.strip()
+        if not board_token:
+            continue
+        try:
+            jobs = fetch_greenhouse_jobs(board_token, keywords=keywords, filter_by_keywords=True)
+            all_discovered_jobs.extend(jobs)
+        except Exception as e:
+            logger.error(f"Error fetching jobs from board '{board_token}': {e}")
+
+    logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across boards.")
+
+    # Apply limit
+    jobs_to_process = all_discovered_jobs[:job_limit]
+    logger.info(f"Processing up to {len(jobs_to_process)} jobs in this batch.")
+
+    pipeline_summary: List[Dict[str, Any]] = []
+
+    # 3. Processing Loop
+    for idx, job in enumerate(jobs_to_process, 1):
+        job_url = job["url"]
+        job_title = job["title"]
+        company = job["company"]
+        logger.info("-" * 60)
+        logger.info(f"[{idx}/{len(jobs_to_process)}] Inspecting: '{job_title}' at '{company}'")
+        logger.info(f"URL: {job_url}")
+
+        # Step A: Check if already applied / processed
+        if is_already_applied(job_url):
+            logger.info(f"⏩ [ALREADY PROCESSED] Job '{job_url}' already exists in database. Skipping.")
+            pipeline_summary.append({
+                "job_title": job_title,
+                "company": company,
+                "url": job_url,
+                "status": "already_processed",
+                "match_score": None,
+                "screenshot": None,
+            })
+            continue
+
+        # Step B: LLM Evaluation Layer
+        logger.info(f"🧠 Evaluating Job Description for '{job_title}'...")
+        eval_result = evaluate_job(
+            job_description=job["description"] or f"Title: {job_title}\nLocation: {job['location']}"
+        )
+        match_score = eval_result.get("match_score", 0)
+        is_remote = eval_result.get("is_remote", False)
+        reasoning = eval_result.get("reasoning", "")
+        custom_answers = eval_result.get("custom_answers", {})
+
+        logger.info(f"Score: {match_score}/100 | Is Remote: {is_remote} | Reasoning: {reasoning}")
+
+        # Step C: Evaluate qualification against thresholds
+        if not is_remote:
+            logger.info(f"❌ [NOT REMOTE] Position '{job_title}' is not remote. Skipping application.")
+            status = "skipped_not_remote"
+            log_application(
+                job_url=job_url,
+                company=company,
+                title=job_title,
+                status=status,
+                match_score=match_score,
+                metadata={"reasoning": reasoning}
+            )
+            pipeline_summary.append({
+                "job_title": job_title,
+                "company": company,
+                "url": job_url,
+                "status": status,
+                "match_score": match_score,
+                "screenshot": None,
+            })
+            continue
+
+        if match_score < min_score:
+            logger.info(f"⚠️ [SCORE BELOW THRESHOLD] Score {match_score} < {min_score}. Skipping application.")
+            status = "skipped_low_match"
+            log_application(
+                job_url=job_url,
+                company=company,
+                title=job_title,
+                status=status,
+                match_score=match_score,
+                metadata={"reasoning": reasoning}
+            )
+            pipeline_summary.append({
+                "job_title": job_title,
+                "company": company,
+                "url": job_url,
+                "status": status,
+                "match_score": match_score,
+                "screenshot": None,
+            })
+            continue
+
+        # Step D: Playwright Execution Layer (Safe V1: Autofill & Screenshot, NO Submit)
+        logger.info(f"🎯 [MATCH ACCEPTED] Score {match_score} >= {min_score}. Launching Playwright autofill...")
+        exec_result = fill_job_application_sync(
+            job_url=job_url,
+            custom_answers=custom_answers,
+            resume_path=resume_path,
+            headless=headless,
+        )
+
+        screenshot_path = exec_result.get("screenshot_path")
+        fields_filled = exec_result.get("fields_filled", [])
+
+        if exec_result.get("success"):
+            status = "drafted"
+            logger.info(f"✅ Form successfully drafted! Screenshot saved at: {screenshot_path}")
+            log_application(
+                job_url=job_url,
+                company=company,
+                title=job_title,
+                status=status,
+                match_score=match_score,
+                metadata={
+                    "screenshot_path": screenshot_path,
+                    "fields_filled": fields_filled,
+                    "reasoning": reasoning,
+                    "custom_answers": custom_answers,
+                }
+            )
+        else:
+            status = "failed"
+            error_msg = exec_result.get("error", "Unknown execution failure")
+            logger.error(f"❌ Execution failed for {job_url}: {error_msg}")
+            log_application(
+                job_url=job_url,
+                company=company,
+                title=job_title,
+                status=status,
+                match_score=match_score,
+                metadata={"error": error_msg, "screenshot_path": screenshot_path}
+            )
+
+        pipeline_summary.append({
+            "job_title": job_title,
+            "company": company,
+            "url": job_url,
+            "status": status,
+            "match_score": match_score,
+            "screenshot": screenshot_path,
+        })
+
+    # 4. Print Executive Run Summary
+    logger.info("=" * 60)
+    logger.info("📊 AUTOPILOT PIPELINE EXECUTION SUMMARY")
+    logger.info("=" * 60)
+    for idx, item in enumerate(pipeline_summary, 1):
+        logger.info(
+            f"{idx}. [{item['status'].upper()}] {item['company']} - {item['job_title']} "
+            f"| Score: {item['match_score']} | Screenshot: {item['screenshot']}"
+        )
+    logger.info("=" * 60)
+
+    return pipeline_summary
+
+
+def main():
+    """Main CLI entrypoint."""
+    args = parse_arguments()
+
+    if args.print_schema:
+        print("\n--- Supabase SQL Migration Schema ---")
+        print(SUPABASE_SCHEMA_SQL)
+        sys.exit(0)
+
+    boards_list = [b.strip() for b in args.boards.split(",") if b.strip()]
+    keywords_list = [k.strip() for k in args.keywords.split(",") if k.strip()]
+
+    run_autopilot(
+        boards=boards_list,
+        keywords=keywords_list,
+        min_score=args.min_score,
+        resume_path=args.resume,
+        headless=args.headless,
+        job_limit=args.limit,
+    )
+
+
+if __name__ == "__main__":
+    main()
