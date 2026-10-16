@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "Full-Stack PHP & CodeIgniter",
+    "keywords": "remote, php, full stack, codeigniter",
+    "boards": "all",
+    "min_score": 70,
+    "auto_apply": false,
+    "status": "active",
+    "created_at": "2026-10-16T10:00:00Z",
+    "matches_count": 9,
+    "applied_count": 3
+  },
+  {
+    "id": 2,
+    "name": "Python & Backend API Engineer",
+    "keywords": "remote, python, backend, api, fastapi",
+    "boards": "canonical, gitlab, stripe, cloudflare",
+    "min_score": 75,
+    "auto_apply": false,
+    "status": "active",
+    "created_at": "2026-10-16T11:30:00Z",
+    "matches_count": 14,
+    "applied_count": 1
+  },
+  {
+    "id": 3,
+    "name": "Full-Stack Developer (General)",
+    "keywords": "remote, full stack, javascript, react, web",
+    "boards": "elastic, mongodb, reddit, figma",
+    "min_score": 70,
+    "auto_apply": false,
+    "status": "paused",
+    "created_at": "2026-10-16T12:00:00Z",
+    "matches_count": 22,
+    "applied_count": 0
+  }
+]

@@ -3,33 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job Autopilot — Live Command Center & Supabase Dashboard</title>
+  <title>All Matches | LoopCV Pro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-base: #06090e;
-      --bg-surface: #0c121d;
-      --bg-card: rgba(18, 26, 43, 0.75);
-      --bg-card-hover: rgba(25, 36, 60, 0.9);
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-glow: rgba(16, 185, 129, 0.25);
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --emerald: #10b981;
-      --emerald-glow: rgba(16, 185, 129, 0.15);
-      --cyan: #06b6d4;
-      --cyan-glow: rgba(6, 182, 212, 0.15);
-      --violet: #8b5cf6;
-      --amber: #f59e0b;
-      --rose: #f43f5e;
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 18px;
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --primary: #1967d2;
+      --primary-hover: #1557b0;
+      --primary-light: #e8f0fe;
+      --text-dark: #202124;
+      --text-body: #3c4043;
+      --text-muted: #5f6368;
+      --text-light: #80868b;
+      --border-color: #dadce0;
+      --border-light: #edf0f2;
+      --bg-body: #f8f9fa;
+      --bg-white: #ffffff;
+      --status-teal: #e6f4ea;
+      --status-teal-text: #137333;
+      --status-purple: #f3e8fd;
+      --status-purple-text: #7627bb;
+      --status-blue: #e8f0fe;
+      --status-blue-text: #1a73e8;
+      --sidebar-width: 240px;
     }
 
     * {
@@ -39,742 +36,594 @@
     }
 
     body {
-      font-family: var(--font-sans);
-      background-color: var(--bg-base);
-      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-dark);
+      font-size: 14px;
+      line-height: 1.5;
+      display: flex;
       min-height: 100vh;
-      overflow-x: hidden;
-      background-image: 
-        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 90%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
     }
 
-    /* Container */
-    .dashboard-container {
-      max-width: 1440px;
-      margin: 0 auto;
-      padding: 24px 32px 64px 32px;
-    }
-
-    /* Top Navigation Bar */
-    header.top-bar {
+    /* -------------------------------------------------------------
+       LEFT SIDEBAR
+    ------------------------------------------------------------- */
+    aside.sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-white);
+      border-right: 1px solid var(--border-color);
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 24px;
-      background: var(--bg-card);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      margin-bottom: 28px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
     }
 
-    .brand-section {
+    .sidebar-brand {
+      padding: 20px 24px 16px 24px;
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
     }
 
-    .logo-badge {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--emerald), var(--cyan));
+    .brand-logo-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #000000;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-menu {
+      list-style: none;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 14px;
+      color: var(--text-body);
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .menu-item:hover {
+      background: #f1f3f4;
+      color: var(--text-dark);
+    }
+
+    .menu-item.active {
+      background: #f1f3f4;
+      color: #000000;
+      font-weight: 600;
+    }
+
+    .menu-icon {
+      width: 18px;
+      height: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-    }
-
-    .logo-badge svg {
-      width: 24px;
-      height: 24px;
-      fill: #ffffff;
-    }
-
-    .brand-info h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      background: linear-gradient(90deg, #ffffff, #cbd5e1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .brand-info p {
-      font-size: 0.8rem;
       color: var(--text-muted);
     }
 
-    .system-status {
+    .menu-item.active .menu-icon {
+      color: #000000;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 14px 24px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-upgrade {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 16px;
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+
+    .btn-upgrade:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-outline-pill {
+      background: var(--bg-white);
+      color: var(--primary);
+      border: 1px solid #c2e7ff;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 12.5px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+
+    .btn-outline-pill:hover {
+      background: var(--primary-light);
+    }
+
+    .lang-select-btn {
+      color: var(--text-muted);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* -------------------------------------------------------------
+       MAIN CONTENT CONTAINER
+    ------------------------------------------------------------- */
+    main.main-wrapper {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* Header Bar */
+    header.top-header {
+      background: var(--bg-white);
+      border-bottom: 1px solid var(--border-color);
+      height: 60px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
+
+    .header-left {
       display: flex;
       align-items: center;
       gap: 16px;
     }
 
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
-      animation: pulseDot 2s infinite ease-in-out;
-    }
-
-    @keyframes pulseDot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-
-    .btn-run-top {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #ffffff;
-      padding: 9px 18px;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.85rem;
+    .btn-hamburger {
+      background: transparent;
       border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-run-top:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
-    }
-
-    /* Metric Cards Grid */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 18px;
-      margin-bottom: 28px;
-    }
-
-    .metric-card {
-      background: var(--bg-card);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.2s ease, transform 0.2s ease;
-    }
-
-    .metric-card:hover {
-      border-color: rgba(255, 255, 255, 0.18);
-      transform: translateY(-2px);
-    }
-
-    .metric-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 4px;
-      height: 100%;
-    }
-
-    .metric-card.emerald::before { background: var(--emerald); }
-    .metric-card.cyan::before { background: var(--cyan); }
-    .metric-card.violet::before { background: var(--violet); }
-    .metric-card.amber::before { background: var(--amber); }
-
-    .metric-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .metric-title {
-      font-size: 0.82rem;
-      font-weight: 500;
+      font-size: 18px;
       color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      cursor: pointer;
     }
 
-    .metric-icon {
-      font-size: 1.2rem;
+    .page-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-dark);
     }
 
-    .metric-value {
-      font-size: 2.1rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .link-changelog {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .btn-new-loop {
+      background: var(--primary);
       color: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-new-loop:hover {
+      background: var(--primary-hover);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .avatar-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #00897b;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-dark);
+    }
+
+    /* Content Area */
+    .page-content {
+      padding: 24px 32px 64px 32px;
+      max-width: 1400px;
+    }
+
+    /* Rejected Matches Pill */
+    .top-action-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .pill-rejected {
+      background: var(--bg-white);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-red {
+      background: #ea4335;
+      color: #ffffff;
+      border-radius: 10px;
+      font-size: 11px;
+      padding: 0 6px;
+      font-weight: 600;
+    }
+
+    /* -------------------------------------------------------------
+       ACTIVE FILTERS BOX
+    ------------------------------------------------------------- */
+    .filter-card {
+      background: var(--bg-white);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .filter-card-legend {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-light);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .filter-inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .filter-inputs-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .form-group-filter label {
+      display: block;
+      font-size: 11.5px;
+      color: var(--text-muted);
       margin-bottom: 4px;
     }
 
-    .metric-sub {
-      font-size: 0.78rem;
-      color: var(--text-dim);
+    .input-filter {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--text-dark);
+      background: var(--bg-white);
+      outline: none;
     }
 
-    /* Main Tab Navigation */
-    .tab-nav {
+    .input-filter:focus {
+      border-color: var(--primary);
+    }
+
+    .filter-actions {
       display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 12px;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 16px;
     }
 
-    .tab-btn {
+    .btn-reset-filters {
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 10px 18px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border-radius: 8px;
+      font-size: 13px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s ease;
     }
 
-    .tab-btn:hover {
+    .btn-reset-filters:hover {
+      text-decoration: underline;
+    }
+
+    .btn-apply-filters {
+      background: var(--primary);
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.04);
+      border: none;
+      border-radius: 20px;
+      padding: 7px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease;
     }
 
-    .tab-btn.active {
-      color: #ffffff;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+    .btn-apply-filters:hover {
+      background: var(--primary-hover);
     }
 
-    /* Tab Content Panes */
-    .tab-pane {
-      display: none;
-    }
-
-    .tab-pane.active {
-      display: block;
-      animation: fadeIn 0.25s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Section Glass Box */
-    .content-box {
-      background: var(--bg-card);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    }
-
-    /* Filter & Controls Toolbar */
-    .toolbar {
+    /* -------------------------------------------------------------
+       BATCH APPLY PROMPT BAR
+    ------------------------------------------------------------- */
+    .batch-bar {
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
-    .search-box {
-      position: relative;
-      flex: 1;
-      min-width: 260px;
+    .batch-prompt-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: #000000;
     }
 
-    .search-box input {
-      width: 100%;
-      background: rgba(12, 18, 29, 0.85);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px 10px 38px;
-      font-size: 0.85rem;
+    .btn-batch-apply {
+      background: #80b4ec;
       color: #ffffff;
-      outline: none;
-      transition: border-color 0.2s ease;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 30px;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease;
     }
 
-    .search-box input:focus {
-      border-color: var(--emerald);
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-dim);
-      font-size: 0.9rem;
-    }
-
-    .filter-group {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .select-filter {
-      background: rgba(12, 18, 29, 0.85);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      padding: 9px 14px;
-      font-size: 0.85rem;
-      color: var(--text-main);
-      outline: none;
+    .btn-batch-apply.active {
+      background: var(--primary);
       cursor: pointer;
     }
 
-    .select-filter:focus {
-      border-color: var(--emerald);
-    }
-
-    /* Table Styles */
-    .table-container {
+    /* -------------------------------------------------------------
+       MATCHES TABLE
+    ------------------------------------------------------------- */
+    .table-card {
+      background: var(--bg-white);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
       overflow-x: auto;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-subtle);
     }
 
-    table.data-table {
+    table.matches-table {
       width: 100%;
       border-collapse: collapse;
       text-align: left;
-      font-size: 0.88rem;
     }
 
-    table.data-table th {
-      background: rgba(15, 23, 42, 0.95);
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border-subtle);
+    table.matches-table th {
+      padding: 12px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-body);
       text-transform: uppercase;
-      font-size: 0.72rem;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-white);
     }
 
-    table.data-table td {
-      padding: 16px 18px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      color: var(--text-main);
+    table.matches-table td {
+      padding: 14px 14px;
+      border-bottom: 1px solid var(--border-light);
       vertical-align: middle;
+      font-size: 13px;
     }
 
-    table.data-table tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
+    table.matches-table tr:hover td {
+      background-color: #fafbfc;
     }
 
-    .company-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: rgba(99, 102, 241, 0.15);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      text-transform: uppercase;
+    /* Table Column Elements */
+    .checkbox-col {
+      width: 40px;
+      text-align: center;
     }
 
-    .job-title-link {
-      font-weight: 600;
-      color: #ffffff;
-      text-decoration: none;
-      display: inline-block;
-      margin-bottom: 2px;
-      transition: color 0.2s ease;
+    .checkbox-col input[type="checkbox"] {
+      cursor: pointer;
+      width: 15px;
+      height: 15px;
     }
 
-    .job-title-link:hover {
-      color: var(--cyan);
-    }
-
-    .job-url-sub {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      display: block;
-      font-family: var(--font-mono);
-      max-width: 320px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* Score Badges */
-    .score-badge {
-      display: inline-flex;
+    .company-logo-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #f1f3f4;
+      display: flex;
       align-items: center;
       justify-content: center;
-      width: 46px;
-      height: 32px;
-      border-radius: 8px;
       font-weight: 700;
-      font-size: 0.88rem;
-      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-body);
+      overflow: hidden;
     }
 
-    .score-badge.high {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #34d399;
+    .role-info-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 380px;
     }
 
-    .score-badge.medium {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      color: #fbbf24;
+    .role-job-title {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13.5px;
+      display: inline-block;
     }
 
-    .score-badge.low {
-      background: rgba(244, 63, 94, 0.15);
-      border: 1px solid rgba(244, 63, 94, 0.4);
-      color: #fb7185;
+    .role-job-title:hover {
+      text-decoration: underline;
+    }
+
+    .role-company-name {
+      color: var(--text-body);
+      font-size: 12.5px;
+    }
+
+    .role-location {
+      color: var(--text-light);
+      font-size: 11.5px;
     }
 
     /* Status Pills */
-    .table-status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: capitalize;
-    }
-
-    .table-status-pill.drafted {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #34d399;
-    }
-
-    .table-status-pill.skipped {
-      background: rgba(148, 163, 184, 0.1);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      color: #94a3b8;
-    }
-
-    /* Action Buttons in Table */
-    .btn-action-icon {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-main);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-      text-decoration: none;
-    }
-
-    .btn-action-icon:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-
-    .btn-action-icon.view-screenshot {
-      background: rgba(6, 182, 212, 0.12);
-      border-color: rgba(6, 182, 212, 0.3);
-      color: #67e8f9;
-    }
-
-    .btn-action-icon.view-screenshot:hover {
-      background: rgba(6, 182, 212, 0.25);
-    }
-
-    /* Runner Form & Settings */
-    .runner-layout {
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 24px;
-    }
-
-    @media (max-width: 960px) {
-      .runner-layout { grid-template-columns: 1fr; }
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .form-control {
-      width: 100%;
-      background: rgba(12, 18, 29, 0.85);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      font-size: 0.88rem;
-      color: #ffffff;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-
-    .form-control:focus {
-      border-color: var(--emerald);
-    }
-
-    .range-slider-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .range-slider-wrapper input[type="range"] {
-      flex: 1;
-      accent-color: var(--emerald);
-      cursor: pointer;
-    }
-
-    .range-val-badge {
-      font-family: var(--font-mono);
-      font-weight: 700;
-      font-size: 0.95rem;
-      color: #34d399;
-      background: rgba(16, 185, 129, 0.15);
+    .badge-status {
+      display: inline-block;
       padding: 4px 10px;
-      border-radius: 6px;
-      min-width: 48px;
-      text-align: center;
-    }
-
-    .preset-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .chip-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-muted);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .chip-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-    }
-
-    /* Terminal Console */
-    .terminal-window {
-      background: #04070c;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: 480px;
-    }
-
-    .terminal-header {
-      background: #090f18;
-      padding: 10px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .terminal-dots {
-      display: flex;
-      gap: 6px;
-    }
-
-    .t-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-
-    .t-dot.red { background: #ef4444; }
-    .t-dot.yellow { background: #f59e0b; }
-    .t-dot.green { background: #10b981; }
-
-    .terminal-title {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-
-    .terminal-body {
-      padding: 16px;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      line-height: 1.6;
-      color: #94a3b8;
-      overflow-y: auto;
-      flex: 1;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    .terminal-line {
-      margin-bottom: 4px;
-    }
-
-    .terminal-line.info { color: #cbd5e1; }
-    .terminal-line.success { color: #34d399; font-weight: 600; }
-    .terminal-line.warning { color: #fbbf24; }
-    .terminal-line.error { color: #f87171; }
-
-    /* Profile & Resume Layout */
-    .profile-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-
-    @media (max-width: 900px) {
-      .profile-layout { grid-template-columns: 1fr; }
-    }
-
-    .dropzone-box {
-      border: 2px dashed rgba(255, 255, 255, 0.15);
-      border-radius: var(--radius-md);
-      padding: 36px 24px;
-      text-align: center;
-      background: rgba(12, 18, 29, 0.5);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-bottom: 20px;
-    }
-
-    .dropzone-box:hover, .dropzone-box.dragover {
-      border-color: var(--emerald);
-      background: rgba(16, 185, 129, 0.05);
-    }
-
-    .dropzone-icon {
-      font-size: 2.4rem;
-      margin-bottom: 12px;
-      display: block;
-    }
-
-    .info-list-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      font-size: 0.88rem;
-    }
-
-    .info-label {
-      color: var(--text-dim);
+      border-radius: 12px;
+      font-size: 11.5px;
       font-weight: 500;
-    }
-
-    .info-val {
-      font-weight: 600;
-      color: #ffffff;
-      text-align: right;
-    }
-
-    /* Screenshots Grid */
-    .screenshots-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .screenshot-thumb-card {
-      background: rgba(12, 18, 29, 0.85);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .screenshot-thumb-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--cyan);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    }
-
-    .screenshot-img-preview {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      object-position: top;
-      background: #000000;
-      display: block;
-    }
-
-    .screenshot-meta {
-      padding: 12px 16px;
-    }
-
-    .screenshot-name {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #ffffff;
-      margin-bottom: 4px;
-      overflow: hidden;
-      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .screenshot-sub {
-      font-size: 0.72rem;
-      color: var(--text-dim);
+    .badge-status.email-sent {
+      background: var(--status-teal);
+      color: var(--status-teal-text);
     }
 
-    /* Modal Lightbox */
+    .badge-status.extension {
+      background: var(--status-blue);
+      color: var(--status-blue-text);
+    }
+
+    .badge-status.already-sent {
+      background: var(--status-purple);
+      color: var(--status-purple-text);
+    }
+
+    .badge-status.skipped {
+      background: #f1f3f4;
+      color: var(--text-muted);
+    }
+
+    /* Platform Pill */
+    .badge-platform {
+      background: #e8eaed;
+      color: var(--primary);
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* Actions Column */
+    .actions-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-action-icon {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-body);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease;
+    }
+
+    .btn-action-icon:hover {
+      color: var(--primary);
+    }
+
+    .btn-action-bolt {
+      color: #000000;
+      font-size: 17px;
+    }
+
+    .btn-action-bolt:hover {
+      color: var(--primary);
+      transform: scale(1.15);
+    }
+
+    /* -------------------------------------------------------------
+       MODAL LIGHTBOX
+    ------------------------------------------------------------- */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(4, 7, 12, 0.88);
-      backdrop-filter: blur(12px);
+      background: rgba(0, 0, 0, 0.65);
       z-index: 9999;
       display: none;
       align-items: center;
@@ -786,641 +635,741 @@
       display: flex;
     }
 
-    .modal-content {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      max-width: 95vw;
-      max-height: 92vh;
-      width: 1100px;
+    .modal-dialog {
+      background: #ffffff;
+      border-radius: 12px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     }
 
     .modal-header {
-      padding: 16px 24px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border-subtle);
-      background: rgba(15, 23, 42, 0.8);
-    }
-
-    .modal-header h3 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .btn-close-modal {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1.4rem;
-      cursor: pointer;
-      line-height: 1;
     }
 
     .modal-body {
-      padding: 20px;
+      padding: 24px;
       overflow-y: auto;
-      text-align: center;
-      flex: 1;
-      background: #020408;
     }
 
-    .modal-body img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    .btn-close {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* Floating Chat Bubble */
+    .floating-chat-bubble {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(25, 103, 210, 0.4);
+      cursor: pointer;
+      z-index: 99;
+      transition: transform 0.2s ease;
+    }
+
+    .floating-chat-bubble:hover {
+      transform: scale(1.08);
     }
   </style>
 </head>
 <body>
 
-<div class="dashboard-container">
-  <!-- Top Bar -->
-  <header class="top-bar">
-    <div class="brand-section">
-      <div class="logo-badge">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-        </svg>
-      </div>
-      <div class="brand-info">
-        <h1>Job Autopilot Command Center</h1>
-        <p>Autonomous Greenhouse Discovery &middot; Supabase Live Sync &middot; Playwright Autofill</p>
-      </div>
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <svg class="brand-logo-icon" viewBox="0 0 32 32">
+        <path d="M16 4C9.37 4 4 9.37 4 16s5.37 12 12 12 12-5.37 12-12S22.63 4 16 4zm0 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#000000"/>
+        <circle cx="16" cy="16" r="3" fill="#000000"/>
+      </svg>
+      <span class="brand-title">loopcv</span>
     </div>
-    
-    <div class="system-status">
-      <div class="status-pill" id="supabase-pill">
-        <span class="status-dot"></span>
-        <span id="supabase-status-text">Connected to Supabase DB</span>
-      </div>
-      <button class="btn-run-top" onclick="switchToTab('runner')">
-        <span>⚡</span> Run Autopilot
+
+    <ul class="sidebar-menu">
+      <li>
+        <a class="menu-item" onclick="switchView('overview')">
+          <span class="menu-icon">⊞</span>
+          <span>Overview</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item" onclick="switchView('loops')">
+          <span class="menu-icon">🔄</span>
+          <span>My loops</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item" onclick="switchView('board')">
+          <span class="menu-icon">📋</span>
+          <span>Board</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item active" onclick="switchView('matches')">
+          <span class="menu-icon">☰</span>
+          <span>All Matches</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item" onclick="switchView('search')">
+          <span class="menu-icon">🔍</span>
+          <span>Search Jobs</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item" onclick="switchView('applications')">
+          <span class="menu-icon">📄</span>
+          <span>My Applications</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item" onclick="switchView('questions')">
+          <span class="menu-icon">❓</span>
+          <span>Questions</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item" onclick="switchView('cv_checker')">
+          <span class="menu-icon">📝</span>
+          <span>CV Checker</span>
+        </a>
+      </li>
+      <li>
+        <a class="menu-item" onclick="switchView('cv_builder')">
+          <span class="menu-icon">🔨</span>
+          <span>CV Builder</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <button class="btn-upgrade" onclick="openNewLoopModal()">
+        <span>🚀</span> Upgrade Now
       </button>
+      <button class="btn-outline-pill" onclick="alert('Help & documentation: LoopCV Autopilot connects directly to Supabase and headlessly executes job applications with Playwright.')">
+        <span>❓</span> Help - FAQ
+      </button>
+      <button class="btn-outline-pill" onclick="openNewLoopModal()">
+        <span>💡</span> Feature Request
+      </button>
+      <a class="lang-select-btn">
+        <span>🌐</span> Select Language
+      </a>
     </div>
-  </header>
+  </aside>
 
-  <!-- Metrics Row -->
-  <div class="metrics-grid">
-    <div class="metric-card emerald">
-      <div class="metric-header">
-        <span class="metric-title">Total Applications</span>
-        <span class="metric-icon">📑</span>
+  <!-- MAIN WRAPPER -->
+  <main class="main-wrapper">
+    <!-- Top Bar -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="btn-hamburger">☰</button>
+        <span class="page-title" id="current-view-title">All Matches</span>
       </div>
-      <div class="metric-value" id="stat-total">--</div>
-      <div class="metric-sub">Recorded in Supabase applications table</div>
-    </div>
 
-    <div class="metric-card cyan">
-      <div class="metric-header">
-        <span class="metric-title">Drafted & Screenshot</span>
-        <span class="metric-icon">📸</span>
-      </div>
-      <div class="metric-value" id="stat-drafted">--</div>
-      <div class="metric-sub">Ready for review & visual verification</div>
-    </div>
-
-    <div class="metric-card violet">
-      <div class="metric-header">
-        <span class="metric-title">High Match Roles (&ge;70%)</span>
-        <span class="metric-icon">🎯</span>
-      </div>
-      <div class="metric-value" id="stat-high">--</div>
-      <div class="metric-sub">Evaluated against Saksham Sood's resume</div>
-    </div>
-
-    <div class="metric-card amber">
-      <div class="metric-header">
-        <span class="metric-title">Average Match Score</span>
-        <span class="metric-icon">📈</span>
-      </div>
-      <div class="metric-value" id="stat-avg">--%</div>
-      <div class="metric-sub">Across all evaluated opportunities</div>
-    </div>
-  </div>
-
-  <!-- Tab Nav -->
-  <nav class="tab-nav">
-    <button class="tab-btn active" onclick="switchTab(this, 'feed')">
-      <span>📊</span> Job Feed & Applications
-    </button>
-    <button class="tab-btn" onclick="switchTab(this, 'runner')">
-      <span>🚀</span> Run Autopilot Pipeline
-    </button>
-    <button class="tab-btn" onclick="switchTab(this, 'profile')">
-      <span>📄</span> Candidate Profile & Resume
-    </button>
-    <button class="tab-btn" onclick="switchTab(this, 'screenshots')">
-      <span>🖼️</span> Visual Proof Gallery
-    </button>
-  </nav>
-
-  <!-- TAB 1: Live Job Feed -->
-  <div class="tab-pane active" id="pane-feed">
-    <div class="content-box">
-      <div class="toolbar">
-        <div class="search-box">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="feed-search" placeholder="Search by job title, company, or reasoning..." oninput="filterFeedTable()">
+      <div class="header-right">
+        <a class="link-changelog" href="https://github.com/sakshamsood24/Web-Scraping-Job-AutoPilot" target="_blank">
+          <span>📢</span> Changelog
+        </a>
+        <button class="btn-new-loop" onclick="openNewLoopModal()">
+          <span>+</span> New Loop
+        </button>
+        <div class="user-profile" onclick="switchView('cv_builder')">
+          <div class="avatar-circle">S</div>
+          <span class="user-name">Saksham Sood</span>
         </div>
-        <div class="filter-group">
-          <select class="select-filter" id="filter-status" onchange="filterFeedTable()">
-            <option value="all">All Statuses</option>
-            <option value="drafted">Drafted</option>
-            <option value="skipped_low_match">Skipped (Low Match)</option>
-          </select>
-          <button class="btn-action-icon" onclick="loadApplications()">🔄 Refresh</button>
+      </div>
+    </header>
+
+    <!-- CONTENT: MATCHES VIEW -->
+    <div class="page-content" id="view-matches">
+      <!-- Top Rejected Counter -->
+      <div class="top-action-row">
+        <div class="pill-rejected">
+          <span>Rejected matches</span>
+          <span class="badge-red" id="rejected-count-badge">0</span>
         </div>
       </div>
 
-      <div class="table-container">
-        <table class="data-table">
+      <!-- ACTIVE FILTERS CARD -->
+      <div class="filter-card">
+        <div class="filter-card-legend">ACTIVE FILTERS</div>
+        <div class="filter-inputs-grid">
+          <div class="form-group-filter">
+            <label>Filter by status</label>
+            <select class="input-filter" id="filter-status" onchange="applyFilters()">
+              <option value="all">All matches</option>
+              <option value="applied">Applied / Drafted</option>
+              <option value="drafted">Drafted with Proof</option>
+              <option value="skipped">Skipped (Low Match)</option>
+            </select>
+          </div>
+
+          <div class="form-group-filter">
+            <label>Platforms</label>
+            <select class="input-filter" id="filter-platform" onchange="applyFilters()">
+              <option value="all">All Platforms</option>
+              <option value="greenhouse">Greenhouse</option>
+              <option value="linkedin">LinkedIn</option>
+            </select>
+          </div>
+
+          <div class="form-group-filter">
+            <label>Filter Companies</label>
+            <input type="text" class="input-filter" id="filter-company" placeholder="e.g. Canonical, GitLab" oninput="applyFilters()">
+          </div>
+
+          <div class="form-group-filter">
+            <label>Filter job description</label>
+            <input type="text" class="input-filter" id="filter-desc" placeholder="e.g. PHP, Python, Remote" oninput="applyFilters()">
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn-reset-filters" onclick="resetFilters()">Reset filters</button>
+          <button class="btn-apply-filters" onclick="applyFilters()">Apply Filters</button>
+        </div>
+      </div>
+
+      <!-- BATCH PROMPT BAR -->
+      <div class="batch-bar">
+        <div class="batch-prompt-text">
+          Select the jobs you would like to apply and click the "Apply" button to the right
+        </div>
+        <button class="btn-batch-apply" id="btn-batch-apply" onclick="executeBatchApply()">
+          Apply
+        </button>
+      </div>
+
+      <!-- MATCHES TABLE -->
+      <div class="table-card">
+        <table class="matches-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Company</th>
-              <th>Job Title</th>
-              <th>Match Score</th>
-              <th>Status</th>
-              <th>Timestamp</th>
-              <th>Actions</th>
+              <th class="checkbox-col">
+                <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)">
+              </th>
+              <th style="width: 44px;">
+                <span>▥</span>
+              </th>
+              <th>ROLE &amp; COMPANY</th>
+              <th>STATUS</th>
+              <th>PLATFORM</th>
+              <th>SALARY</th>
+              <th>MATCHED AT</th>
+              <th>ACTIONS</th>
+              <th>CV BUILDER</th>
             </tr>
           </thead>
-          <tbody id="applications-table-body">
+          <tbody id="matches-tbody">
             <tr>
-              <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 32px;">
-                Loading live records from Supabase...
+              <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                Loading matches from Supabase database...
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
 
-  <!-- TAB 2: Run Autopilot -->
-  <div class="tab-pane" id="pane-runner">
-    <div class="runner-layout">
-      <!-- Config Form -->
-      <div class="content-box">
-        <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 18px;">Autopilot Execution Settings</h2>
-        
-        <form id="run-pipeline-form" onsubmit="triggerPipeline(event)">
-          <div class="form-group">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <label style="margin-bottom: 0;">Target Greenhouse Boards</label>
-              <span style="font-size: 0.72rem; color: #34d399; font-weight: 600;">Type "all" for Any Hiring Company</span>
-            </div>
-            <input type="text" class="form-control" id="target-boards" value="all" required placeholder="e.g. all, or canonical, gitlab, stripe">
-            <div class="preset-chips">
-              <span class="chip-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 600;" onclick="setBoard('all')">🌐 Any Company (All Top Tech)</span>
-              <span class="chip-btn" onclick="setBoard('canonical')">Canonical</span>
-              <span class="chip-btn" onclick="setBoard('gitlab')">GitLab</span>
-              <span class="chip-btn" onclick="setBoard('stripe')">Stripe</span>
-              <span class="chip-btn" onclick="setBoard('cloudflare')">Cloudflare</span>
-              <span class="chip-btn" onclick="setBoard('elastic')">Elastic</span>
-              <span class="chip-btn" onclick="setBoard('mongodb')">MongoDB</span>
-              <span class="chip-btn" onclick="setBoard('reddit')">Reddit</span>
-              <span class="chip-btn" onclick="setBoard('figma')">Figma</span>
-            </div>
+    <!-- OTHER TAB VIEWS (Overview, Loops, Questions, CV Checker) -->
+    <div class="page-content" id="view-loops" style="display: none;">
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px;">My Automated Campaigns (Loops)</h2>
+      <div id="loops-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;"></div>
+    </div>
+
+    <div class="page-content" id="view-questions" style="display: none;">
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px;">Screening Questions &amp; LLM Answers</h2>
+      <div id="questions-container" style="display: flex; flex-direction: column; gap: 14px;"></div>
+    </div>
+
+    <div class="page-content" id="view-cv_checker" style="display: none;">
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">CV &amp; Job Description Match Checker</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Paste any Job Description below to evaluate it against your resume using Gemini AI.</p>
+      <div class="filter-card">
+        <textarea id="cv-check-text" style="width: 100%; height: 160px; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 13px;" placeholder="Paste job description here..."></textarea>
+        <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+          <button class="btn-apply-filters" onclick="runCVCheck()">Analyze Match</button>
+        </div>
+        <div id="cv-check-result" style="margin-top: 20px; display: none;"></div>
+      </div>
+    </div>
+
+    <div class="page-content" id="view-cv_builder" style="display: none;">
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px;">Candidate Profile &amp; Resume</h2>
+      <div class="filter-card">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 14px;">Active PDF Resume</h3>
+        <p style="margin-bottom: 14px;">Current Resume: <strong id="active-resume-label">Saksham_Sood_Resume(1).pdf</strong></p>
+        <input type="file" id="resume-file-input" accept=".pdf" onchange="uploadNewResume(event)">
+      </div>
+    </div>
+  </main>
+
+  <!-- NEW LOOP CREATION MODAL -->
+  <div class="modal-overlay" id="new-loop-modal" onclick="closeModal('new-loop-modal')">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 style="font-size: 16px; font-weight: 600;">Create a New Job Application Loop</h3>
+        <button class="btn-close" onclick="closeModal('new-loop-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form onsubmit="handleCreateLoop(event)">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 6px;">Loop Name</label>
+            <input type="text" class="input-filter" id="new-loop-name" value="Full-Stack Remote Developer" required>
           </div>
-
-          <div class="form-group">
-            <label>Discovery Keywords</label>
-            <input type="text" class="form-control" id="target-keywords" value="remote,php,full stack,developer">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 6px;">Target Boards (e.g. all, or canonical, gitlab)</label>
+            <input type="text" class="input-filter" id="new-loop-boards" value="all" required>
           </div>
-
-          <div class="form-group">
-            <label>Minimum Match Score</label>
-            <div class="range-slider-wrapper">
-              <input type="range" id="min-score" min="10" max="95" value="70" oninput="document.getElementById('min-score-val').textContent = this.value + '%'">
-              <span class="range-val-badge" id="min-score-val">70%</span>
-            </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 6px;">Keywords</label>
+            <input type="text" class="input-filter" id="new-loop-keywords" value="remote, php, full stack, python" required>
           </div>
-
-          <div class="form-group">
-            <label>Batch Limit (Max Jobs)</label>
-            <input type="number" class="form-control" id="job-limit" min="1" max="25" value="5">
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 6px;">Minimum Match Score (%)</label>
+            <input type="number" class="input-filter" id="new-loop-score" value="70" min="40" max="95">
           </div>
-
-          <button type="submit" id="btn-start-run" class="btn-run-top" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
-            <span>🚀</span> Launch Autopilot Now
-          </button>
+          <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn-reset-filters" onclick="closeModal('new-loop-modal')">Cancel</button>
+            <button type="submit" class="btn-apply-filters">Start Loop</button>
+          </div>
         </form>
       </div>
+    </div>
+  </div>
 
-      <!-- Live Terminal Stream -->
-      <div class="terminal-window">
-        <div class="terminal-header">
-          <div class="terminal-dots">
-            <div class="t-dot red"></div>
-            <div class="t-dot yellow"></div>
-            <div class="t-dot green"></div>
-          </div>
-          <div class="terminal-title">live_pipeline_stream.log</div>
-          <button class="chip-btn" onclick="clearTerminal()">Clear</button>
-        </div>
-        <div class="terminal-body" id="terminal-output">
-          <div class="terminal-line info">[System] Listening for real-time pipeline events and Playwright actions...</div>
-        </div>
+  <!-- SCREENSHOT LIGHTBOX MODAL -->
+  <div class="modal-overlay" id="screenshot-modal" onclick="closeModal('screenshot-modal')">
+    <div class="modal-dialog" style="max-width: 1000px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="modal-screenshot-title" style="font-size: 15px; font-weight: 600;">Playwright Form Proof</h3>
+        <button class="btn-close" onclick="closeModal('screenshot-modal')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align: center; background: #0b0f19;">
+        <img id="modal-screenshot-img" src="" style="max-width: 100%; border-radius: 6px;" alt="Form Screenshot">
       </div>
     </div>
   </div>
 
-  <!-- TAB 3: Candidate Profile & Resume -->
-  <div class="tab-pane" id="pane-profile">
-    <div class="profile-layout">
-      <!-- Active Resume Card -->
-      <div class="content-box">
-        <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;">Active Resume for Applications</h2>
-        
-        <div class="dropzone-box" id="resume-dropzone" onclick="document.getElementById('file-input').click()">
-          <span class="dropzone-icon">📄</span>
-          <p style="font-weight: 600; margin-bottom: 4px;">Click or Drag & Drop new PDF resume here</p>
-          <p style="font-size: 0.78rem; color: var(--text-dim);">Replaces active resume and updates .env configuration</p>
-          <input type="file" id="file-input" accept=".pdf" style="display: none;" onchange="handleFileUpload(event)">
-        </div>
-
-        <div class="info-list-item">
-          <span class="info-label">Current Active File</span>
-          <span class="info-val" id="profile-resume-name">Loading...</span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">File Size</span>
-          <span class="info-val" id="profile-resume-size">-- KB</span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">Storage Path</span>
-          <span class="info-val" id="profile-resume-path" style="font-family: var(--font-mono); font-size: 0.75rem;">--</span>
-        </div>
-      </div>
-
-      <!-- Candidate Profile Information -->
-      <div class="content-box">
-        <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;">Candidate Profile (Used by Playwright & Evaluator)</h2>
-        <div class="info-list-item">
-          <span class="info-label">Candidate Name</span>
-          <span class="info-val" id="profile-name">Saksham Sood</span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">Email</span>
-          <span class="info-val" id="profile-email">sakshamsood007@gmail.com</span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">Phone</span>
-          <span class="info-val" id="profile-phone">+91 9882315768</span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">LinkedIn</span>
-          <span class="info-val"><a id="profile-linkedin" href="#" target="_blank" style="color: var(--cyan); text-decoration: none;">View Profile</a></span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">GitHub</span>
-          <span class="info-val"><a id="profile-github" href="#" target="_blank" style="color: var(--emerald); text-decoration: none;">sakshamsood24</a></span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">Notice Period</span>
-          <span class="info-val" id="profile-notice">1 month</span>
-        </div>
-        <div class="info-list-item">
-          <span class="info-label">Salary Expectation</span>
-          <span class="info-val" id="profile-salary">$10,000 - $110,000 USD</span>
-        </div>
-      </div>
-    </div>
+  <!-- FLOATING CHAT WIDGET -->
+  <div class="floating-chat-bubble" onclick="alert('LoopCV Autopilot is running. 11+ Greenhouse boards connected.')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
   </div>
 
-  <!-- TAB 4: Screenshots Gallery -->
-  <div class="tab-pane" id="pane-screenshots">
-    <div class="content-box">
-      <div class="toolbar">
-        <h2 style="font-size: 1.15rem; font-weight: 700;">Playwright Verification Screenshots</h2>
-        <button class="btn-action-icon" onclick="loadScreenshots()">🔄 Refresh Gallery</button>
-      </div>
-      <div class="screenshots-grid" id="screenshots-grid-container">
-        <p style="color: var(--text-dim); padding: 24px;">Loading screenshots...</p>
-      </div>
-    </div>
-  </div>
-</div>
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let allMatches = [];
+    let selectedJobUrls = new Set();
 
-<!-- Screenshot Lightbox Modal -->
-<div class="modal-overlay" id="screenshot-modal" onclick="closeModal(event)">
-  <div class="modal-content" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <h3 id="modal-title">Verification Screenshot</h3>
-      <button class="btn-close-modal" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <img id="modal-img" src="" alt="Application Proof">
-    </div>
-  </div>
-</div>
+    // Navigation View Switcher
+    function switchView(viewName) {
+      document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
 
-<script>
-  let applicationsData = [];
+      const targetPane = document.getElementById('view-' + viewName);
+      if (targetPane) targetPane.style.display = 'block';
 
-  // Tab switching
-  function switchTab(btn, paneId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('pane-' + paneId).classList.add('active');
-  }
+      const titles = {
+        'matches': 'All Matches',
+        'overview': 'Overview Analytics',
+        'loops': 'My Loops',
+        'board': 'Application Kanban Board',
+        'search': 'Live Search Jobs',
+        'applications': 'My Applications',
+        'questions': 'Screening Questions',
+        'cv_checker': 'CV Checker',
+        'cv_builder': 'CV Builder & Profile'
+      };
+      document.getElementById('current-view-title').textContent = titles[viewName] || 'LoopCV Pro';
 
-  function switchToTab(paneId) {
-    const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(paneId));
-    if (btn) switchTab(btn, paneId);
-  }
+      // Highlight active menu
+      const clickedMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.getAttribute('onclick') && el.getAttribute('onclick').includes(viewName));
+      if (clickedMenu) clickedMenu.classList.add('active');
 
-  function setBoard(boardName) {
-    document.getElementById('target-boards').value = boardName;
-  }
-
-  // Fetch initial stats & applications
-  async function loadStats() {
-    try {
-      const res = await fetch('/api/stats');
-      const data = await res.json();
-      document.getElementById('stat-total').textContent = data.total_jobs || 0;
-      document.getElementById('stat-drafted').textContent = data.drafted_count || 0;
-      document.getElementById('stat-high').textContent = data.high_match_count || 0;
-      document.getElementById('stat-avg').textContent = (data.avg_match_score || 0) + '%';
-    } catch (e) {
-      console.error("Failed to load stats:", e);
-    }
-  }
-
-  async function loadApplications() {
-    const tbody = document.getElementById('applications-table-body');
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 32px;">Loading live records from Supabase...</td></tr>`;
-    try {
-      const res = await fetch('/api/applications');
-      const json = await res.json();
-      applicationsData = json.data || [];
-      renderFeedTable(applicationsData);
-      loadStats();
-    } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #f87171; padding: 24px;">Failed to connect to Supabase: ${e.message}</td></tr>`;
-    }
-  }
-
-  function renderFeedTable(rows) {
-    const tbody = document.getElementById('applications-table-body');
-    if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 32px;">No matching records found.</td></tr>`;
-      return;
+      if (viewName === 'loops') loadLoops();
+      if (viewName === 'questions') loadQuestions();
+      if (viewName === 'matches') fetchMatches();
     }
 
-    tbody.innerHTML = rows.map(r => {
-      const score = r.match_score !== null ? r.match_score : '--';
-      let scoreClass = 'low';
-      if (score >= 70) scoreClass = 'high';
-      else if (score >= 50) scoreClass = 'medium';
-
-      const isDrafted = r.status === 'drafted';
-      const statusClass = isDrafted ? 'drafted' : 'skipped';
-      const statusLabel = isDrafted ? 'Drafted & Saved' : (r.status || 'Processed').replace(/_/g, ' ');
-
-      // Check screenshot
-      const meta = r.metadata || {};
-      const screenshotPath = meta.screenshot_path || '';
-      let screenshotBtn = '';
-      if (screenshotPath) {
-        const filename = screenshotPath.split('/').pop();
-        screenshotBtn = `<button class="btn-action-icon view-screenshot" onclick="openScreenshotModal('/screenshots/${filename}', '${r.title} (${r.company})')">📸 View Proof</button>`;
-      }
-
-      const formattedTime = r.timestamp ? new Date(r.timestamp).toLocaleDateString() + ' ' + new Date(r.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--';
-
-      return `
-        <tr>
-          <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim);">#${r.id}</td>
-          <td><span class="company-tag">${r.company || 'Greenhouse'}</span></td>
-          <td>
-            <a href="${r.job_url}" target="_blank" class="job-title-link">${r.title || 'Untitled Role'}</a>
-            <span class="job-url-sub">${r.job_url}</span>
-          </td>
-          <td>
-            <span class="score-badge ${scoreClass}">${score}%</span>
-          </td>
-          <td>
-            <span class="table-status-pill ${statusClass}">
-              <span style="font-size: 0.7rem;">${isDrafted ? '🟢' : '⚪'}</span> ${statusLabel}
-            </span>
-          </td>
-          <td style="color: var(--text-dim); font-size: 0.78rem;">${formattedTime}</td>
-          <td>
-            <div style="display: flex; gap: 8px;">
-              ${screenshotBtn}
-              <a href="${r.job_url}" target="_blank" class="btn-action-icon">↗ Apply Link</a>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
-  }
-
-  function filterFeedTable() {
-    const q = document.getElementById('feed-search').value.toLowerCase();
-    const status = document.getElementById('filter-status').value;
-
-    const filtered = applicationsData.filter(r => {
-      const matchQuery = !q || (
-        (r.title && r.title.toLowerCase().includes(q)) ||
-        (r.company && r.company.toLowerCase().includes(q)) ||
-        (r.job_url && r.job_url.toLowerCase().includes(q))
-      );
-      const matchStatus = status === 'all' || r.status === status;
-      return matchQuery && matchStatus;
-    });
-
-    renderFeedTable(filtered);
-  }
-
-  // Candidate Profile
-  async function loadProfile() {
-    try {
-      const res = await fetch('/api/profile');
-      const data = await res.json();
-      const cand = data.candidate || {};
-      const personal = cand.personal_info || {};
-      const prefs = cand.employment_preferences || {};
-      const resume = data.active_resume || {};
-
-      document.getElementById('profile-name').textContent = personal.full_name || 'Saksham Sood';
-      document.getElementById('profile-email').textContent = personal.email || '';
-      document.getElementById('profile-phone').textContent = personal.phone || '';
-      document.getElementById('profile-linkedin').href = personal.linkedin || '#';
-      document.getElementById('profile-github').href = personal.github || '#';
-      document.getElementById('profile-notice').textContent = prefs.notice_period || '1 month';
-      document.getElementById('profile-salary').textContent = prefs.salary_expectation_usd || '$10,000 - $110,000 USD';
-
-      document.getElementById('profile-resume-name').textContent = resume.filename || 'None';
-      document.getElementById('profile-resume-size').textContent = (resume.size_kb || 0) + ' KB';
-      document.getElementById('profile-resume-path').textContent = resume.path || '';
-    } catch (e) {
-      console.error("Failed to load profile:", e);
-    }
-  }
-
-  async function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const dropzone = document.getElementById('resume-dropzone');
-    dropzone.style.opacity = '0.5';
-
-    try {
-      const res = await fetch('/api/upload-resume', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("✅ Resume successfully uploaded and activated!");
-        loadProfile();
-      } else {
-        alert("Upload failed: " + (data.detail || "Unknown error"));
-      }
-    } catch (e) {
-      alert("Upload error: " + e.message);
-    } finally {
-      dropzone.style.opacity = '1';
-    }
-  }
-
-  // Pipeline Execution & SSE Log Stream
-  async function triggerPipeline(event) {
-    event.preventDefault();
-    const btn = document.getElementById('btn-start-run');
-    btn.disabled = true;
-    btn.innerHTML = `<span>⏳</span> Pipeline Running...`;
-
-    const payload = {
-      boards: document.getElementById('target-boards').value,
-      keywords: document.getElementById('target-keywords').value,
-      min_score: parseInt(document.getElementById('min-score').value),
-      limit: parseInt(document.getElementById('job-limit').value),
-      headless: true
-    };
-
-    appendTerminalLine(`[Dashboard] Launching Autopilot for boards: ${payload.boards} (Limit: ${payload.limit}, Min Score: ${payload.min_score}%)`, 'info');
-
-    try {
-      const res = await fetch('/api/run-autopilot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        appendTerminalLine(`[Error] ${data.detail || 'Could not start pipeline'}`, 'error');
-      }
-    } catch (e) {
-      appendTerminalLine(`[Error] Request failed: ${e.message}`, 'error');
-    } finally {
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = `<span>🚀</span> Launch Autopilot Now`;
-      }, 3000);
-    }
-  }
-
-  function appendTerminalLine(text, type = 'info') {
-    const term = document.getElementById('terminal-output');
-    const div = document.createElement('div');
-    div.className = `terminal-line ${type}`;
-    div.textContent = text;
-    term.appendChild(div);
-    term.scrollTop = term.scrollHeight;
-  }
-
-  function clearTerminal() {
-    document.getElementById('terminal-output').innerHTML = '';
-  }
-
-  // SSE Connect
-  function connectLogStream() {
-    const evtSource = new EventSource('/api/logs/stream');
-    evtSource.onmessage = function(e) {
+    // Load Matches from Supabase via server.py
+    async function fetchMatches() {
+      const tbody = document.getElementById('matches-tbody');
       try {
-        const data = JSON.parse(e.data);
-        const raw = data.raw || data.message || '';
-        let type = 'info';
-        if (raw.includes('[ERROR]') || raw.includes('error') || raw.includes('Failed')) type = 'error';
-        else if (raw.includes('successful') || raw.includes('✅') || raw.includes('DRAFTED')) type = 'success';
-        else if (raw.includes('WARNING') || raw.includes('⚠️')) type = 'warning';
-        
-        appendTerminalLine(`[${data.time || ''}] ${raw}`, type);
-
-        // If a job was logged, auto-refresh table
-        if (raw.includes('Successfully logged') || raw.includes('EXECUTION SUMMARY')) {
-          loadApplications();
-        }
+        const res = await fetch('/api/matches');
+        const json = await res.json();
+        allMatches = json.data || [];
+        renderMatches(allMatches);
+        updateStats();
       } catch (err) {
-        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #d93025; padding: 32px;">Failed to load matches: ${err.message}</td></tr>`;
       }
-    };
-    evtSource.onerror = function() {
-      // Auto-reconnects by default in browser
-    };
-  }
+    }
 
-  // Screenshots Gallery
-  async function loadScreenshots() {
-    const container = document.getElementById('screenshots-grid-container');
-    container.innerHTML = `<p style="color: var(--text-dim); padding: 24px;">Loading screenshots...</p>`;
-    try {
-      const res = await fetch('/api/screenshots-list');
-      const data = await res.json();
-      const files = data.screenshots || [];
-      if (!files.length) {
-        container.innerHTML = `<p style="color: var(--text-dim); padding: 24px;">No screenshots generated yet. Run Autopilot with a matching job to generate one!</p>`;
+    function renderMatches(rows) {
+      const tbody = document.getElementById('matches-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">No matching job applications found. Create a New Loop to discover roles!</td></tr>`;
         return;
       }
-      container.innerHTML = files.map(f => `
-        <div class="screenshot-thumb-card" onclick="openScreenshotModal('${f.url}', '${f.filename}')">
-          <img class="screenshot-img-preview" src="${f.url}" alt="${f.filename}" loading="lazy">
-          <div class="screenshot-meta">
-            <div class="screenshot-name">${f.filename}</div>
-            <div class="screenshot-sub">${f.size_kb} KB &middot; ${new Date(f.created_at).toLocaleString()}</div>
-          </div>
-        </div>
-      `).join('');
-    } catch (e) {
-      container.innerHTML = `<p style="color: #f87171; padding: 24px;">Failed to load screenshots: ${e.message}</p>`;
+
+      // Palette of company avatar colors matching LoopCV
+      const colors = ['#ea4335', '#fbbc05', '#34a853', '#4285f4', '#ff6d00', '#7b1fa2'];
+
+      tbody.innerHTML = rows.map((r, i) => {
+        const isDrafted = r.status === 'drafted';
+        let statusBadge = `<span class="badge-status skipped">Skipped (${r.match_score || 40}%)</span>`;
+        if (isDrafted) {
+          statusBadge = `<span class="badge-status email-sent">Drafted &amp; Proofed</span>`;
+        } else if (r.status === 'applied') {
+          statusBadge = `<span class="badge-status already-sent">Applied</span>`;
+        }
+
+        const color = colors[i % colors.length];
+        const initial = (r.company || 'C').charAt(0).toUpperCase();
+
+        // Format Date
+        let dateStr = 'Today';
+        if (r.matched_at) {
+          const d = new Date(r.matched_at);
+          dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        const screenshotBtn = r.screenshot_path ? `
+          <button class="btn-action-icon" title="View Verification Screenshot" onclick="viewScreenshot('${r.screenshot_path}', '${r.title}')">
+            📸
+          </button>
+        ` : '';
+
+        return `
+          <tr>
+            <td class="checkbox-col">
+              <input type="checkbox" value="${r.job_url}" onchange="toggleSelectJob('${r.job_url}', this.checked)">
+            </td>
+            <td>
+              <div class="company-logo-circle" style="background-color: ${color}15; color: ${color};">
+                ${initial}
+              </div>
+            </td>
+            <td>
+              <div class="role-info-cell">
+                <a href="${r.job_url}" target="_blank" class="role-job-title">${r.title || 'Software Engineer'}</a>
+                <span class="role-company-name">${r.company || 'Tech Company'}</span>
+                <span class="role-location">${r.location || 'Remote Worldwide'}</span>
+              </div>
+            </td>
+            <td>${statusBadge}</td>
+            <td><span class="badge-platform">${r.platform || 'Greenhouse'}</span></td>
+            <td style="color: var(--text-muted); font-size: 12.5px;">${r.salary || 'N/A'}</td>
+            <td style="color: var(--text-muted); font-size: 12.5px;">${dateStr}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn-action-icon" title="More options" onclick="alert('Job URL: ${r.job_url}')">⋮</button>
+                <button class="btn-action-bolt" title="⚡ Instant Auto-Apply with Playwright" onclick="instantApply('${r.job_url}', '${r.title}', '${r.company}')">⚡</button>
+                ${screenshotBtn}
+              </div>
+            </td>
+            <td>
+              <button class="btn-action-icon" title="Download Tailored CV for this role" onclick="window.open('/api/profile', '_blank')">
+                📥
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
-  }
 
-  // Modal Lightbox
-  function openScreenshotModal(imgSrc, title) {
-    document.getElementById('modal-img').src = imgSrc;
-    document.getElementById('modal-title').textContent = title || 'Verification Proof';
-    document.getElementById('screenshot-modal').classList.add('active');
-  }
+    // Filter Logic
+    function applyFilters() {
+      const status = document.getElementById('filter-status').value;
+      const comp = document.getElementById('filter-company').value.toLowerCase().trim();
+      const desc = document.getElementById('filter-desc').value.toLowerCase().trim();
 
-  function closeModal() {
-    document.getElementById('screenshot-modal').classList.remove('active');
-  }
+      const filtered = allMatches.filter(r => {
+        const matchesStatus = status === 'all' || 
+          (status === 'applied' && (r.status === 'applied' || r.status === 'drafted')) ||
+          (status === 'drafted' && r.status === 'drafted') ||
+          (status === 'skipped' && r.status && r.status.includes('skipped'));
 
-  // Init on load
-  window.addEventListener('DOMContentLoaded', () => {
-    loadApplications();
-    loadProfile();
-    loadScreenshots();
-    connectLogStream();
-  });
-</script>
+        const matchesCompany = !comp || (r.company && r.company.toLowerCase().includes(comp));
+        const matchesDesc = !desc || (
+          (r.title && r.title.toLowerCase().includes(desc)) ||
+          (r.reasoning && r.reasoning.toLowerCase().includes(desc)) ||
+          (r.job_url && r.job_url.toLowerCase().includes(desc))
+        );
+
+        return matchesStatus && matchesCompany && matchesDesc;
+      });
+
+      renderMatches(filtered);
+    }
+
+    function resetFilters() {
+      document.getElementById('filter-status').value = 'all';
+      document.getElementById('filter-platform').value = 'all';
+      document.getElementById('filter-company').value = '';
+      document.getElementById('filter-desc').value = '';
+      renderMatches(allMatches);
+    }
+
+    // Checkbox selections for batch apply
+    function toggleSelectJob(url, isChecked) {
+      if (isChecked) selectedJobUrls.add(url);
+      else selectedJobUrls.delete(url);
+
+      const btn = document.getElementById('btn-batch-apply');
+      if (selectedJobUrls.size > 0) {
+        btn.classList.add('active');
+        btn.textContent = `Apply (${selectedJobUrls.size})`;
+      } else {
+        btn.classList.remove('active');
+        btn.textContent = 'Apply';
+      }
+    }
+
+    function toggleSelectAll(masterCheckbox) {
+      const isChecked = masterCheckbox.checked;
+      document.querySelectorAll('#matches-tbody input[type="checkbox"]').forEach(cb => {
+        cb.checked = isChecked;
+        toggleSelectJob(cb.value, isChecked);
+      });
+    }
+
+    // Instant Single Apply (⚡ Lightning Bolt)
+    async function instantApply(jobUrl, title, company) {
+      if (!confirm(`Launch Playwright stealth autofill for "${title}" at ${company}?`)) return;
+
+      const btn = event.currentTarget;
+      btn.textContent = '⏳';
+      try {
+        const res = await fetch('/api/apply-single', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_url: jobUrl, title: title, company: company })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Application drafted and proof screenshot saved!');
+          fetchMatches();
+        } else {
+          alert('Note: ' + (data.message || 'Form autofill finished.'));
+          fetchMatches();
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.textContent = '⚡';
+      }
+    }
+
+    // Batch Apply
+    async function executeBatchApply() {
+      if (!selectedJobUrls.size) {
+        alert('Please select at least one job checkbox to batch apply.');
+        return;
+      }
+
+      if (!confirm(`Apply to ${selectedJobUrls.size} selected jobs in the background?`)) return;
+
+      try {
+        const res = await fetch('/api/batch-apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_urls: Array.from(selectedJobUrls) })
+        });
+        const data = await res.json();
+        alert('🚀 Batch run started in background! Check terminal or refresh for updates.');
+        selectedJobUrls.clear();
+        toggleSelectAll({ checked: false });
+      } catch (e) {
+        alert('Failed: ' + e.message);
+      }
+    }
+
+    // View Screenshot Modal
+    function viewScreenshot(path, title) {
+      const filename = path.split('/').pop();
+      document.getElementById('modal-screenshot-title').textContent = title + ' — Form Proof';
+      document.getElementById('modal-screenshot-img').src = '/screenshots/' + filename;
+      document.getElementById('screenshot-modal').classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function openNewLoopModal() {
+      document.getElementById('new-loop-modal').classList.add('active');
+    }
+
+    // Create Loop
+    async function handleCreateLoop(event) {
+      event.preventDefault();
+      const payload = {
+        name: document.getElementById('new-loop-name').value,
+        boards: document.getElementById('new-loop-boards').value,
+        keywords: document.getElementById('new-loop-keywords').value,
+        min_score: parseInt(document.getElementById('new-loop-score').value)
+      };
+
+      try {
+        const res = await fetch('/api/loops', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.success) {
+          closeModal('new-loop-modal');
+          alert('🎉 New Loop created! Triggering discovery pipeline...');
+          fetch('/api/run-autopilot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          setTimeout(fetchMatches, 4000);
+        }
+      } catch (err) {
+        alert('Error creating loop: ' + err.message);
+      }
+    }
+
+    // Load Loops View
+    async function loadLoops() {
+      const cont = document.getElementById('loops-container');
+      try {
+        const res = await fetch('/api/loops');
+        const data = await res.json();
+        cont.innerHTML = (data.loops || []).map(loop => `
+          <div class="filter-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="font-size: 15px; font-weight: 600;">${loop.name}</h3>
+              <span class="badge-status email-sent">${loop.status}</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Keywords: <code>${loop.keywords}</code></p>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-body); margin-bottom: 14px;">
+              <span>Matches: <strong>${loop.matches_count || 0}</strong></span>
+              <span>Min Score: <strong>${loop.min_score}%</strong></span>
+            </div>
+            <button class="btn-apply-filters" style="width: 100%;" onclick="runLoopNow('${loop.boards}', '${loop.keywords}', ${loop.min_score})">
+              ▶ Run Loop Now
+            </button>
+          </div>
+        `).join('');
+      } catch (e) {
+        cont.innerHTML = '<p>Failed to load loops.</p>';
+      }
+    }
+
+    function runLoopNow(boards, keywords, minScore) {
+      fetch('/api/run-autopilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ boards: boards, keywords: keywords, min_score: minScore, limit: 10 })
+      });
+      alert('🚀 Loop execution started! Auto-discovering jobs and matching with your resume.');
+    }
+
+    // Questions View
+    async function loadQuestions() {
+      const cont = document.getElementById('questions-container');
+      try {
+        const res = await fetch('/api/questions');
+        const data = await res.json();
+        cont.innerHTML = (data.questions || []).map(q => `
+          <div class="filter-card">
+            <h4 style="font-size: 14px; font-weight: 600; color: #1a73e8; margin-bottom: 6px;">Q: ${q.q}</h4>
+            <p style="font-size: 13px; color: var(--text-body); background: #f8f9fa; padding: 10px; border-radius: 6px;">${q.a || 'N/A'}</p>
+          </div>
+        `).join('');
+      } catch (e) {
+        cont.innerHTML = '<p>Failed to load questions.</p>';
+      }
+    }
+
+    // CV Checker Tool
+    async function runCVCheck() {
+      const text = document.getElementById('cv-check-text').value;
+      if (!text) return alert('Please paste a job description.');
+
+      const resultBox = document.getElementById('cv-check-result');
+      resultBox.style.display = 'block';
+      resultBox.innerHTML = '<p>Evaluating match against your resume with Gemini AI...</p>';
+
+      try {
+        const res = await fetch('/api/cv-checker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_description: text })
+        });
+        const data = await res.json();
+        resultBox.innerHTML = `
+          <div style="padding: 16px; background: #e8f0fe; border-radius: 8px; border: 1px solid #c2e7ff;">
+            <h3 style="font-size: 16px; color: #1a73e8; margin-bottom: 8px;">Match Score: ${data.score}%</h3>
+            <p style="font-size: 13px; margin-bottom: 12px;"><strong>AI Analysis:</strong> ${data.reasoning}</p>
+            <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Tailoring Tips:</h4>
+            <ul style="padding-left: 20px; font-size: 12.5px;">
+              ${(data.recommendations || []).map(r => `<li>${r}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      } catch (e) {
+        resultBox.innerHTML = `<p style="color: red;">Error: ${e.message}</p>`;
+      }
+    }
+
+    // Stats update
+    async function updateStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        document.getElementById('rejected-count-badge').textContent = data.rejected_matches || 0;
+      } catch (e) {}
+    }
+
+    // Resume Upload
+    async function uploadNewResume(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const res = await fetch('/api/upload-resume', { method: 'POST', body: fd });
+        const json = await res.json();
+        if (json.success) {
+          alert('✅ Resume uploaded and set as active!');
+          document.getElementById('active-resume-label').textContent = json.filename;
+        }
+      } catch (e) {
+        alert('Upload failed: ' + e.message);
+      }
+    }
+
+    // Auto initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchMatches();
+    });
+  </script>
 </body>
 </html>
