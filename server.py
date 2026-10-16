@@ -263,6 +263,8 @@ async def get_matches(
                 "screenshot_path": meta.get("screenshot_path"),
                 "reasoning": meta.get("reasoning", ""),
                 "fields_filled": meta.get("fields_filled", []),
+                "loop_id": meta.get("loop_id"),
+                "loop_name": meta.get("loop_name"),
             })
 
         return {"data": formatted_rows, "count": len(formatted_rows)}
@@ -579,6 +581,17 @@ def _execute_pipeline_task(req: RunPipelineRequest):
 
         logging.info(f"▶️ Launching Loop Autopilot: boards={boards_list}, min_score={req.min_score}, limit={req.limit}")
         current_pipeline_status = f"Scraping & evaluating opportunities across {len(boards_list)} boards..."
+        loop_name = None
+        if LOOPS_FILE.is_file():
+            try:
+                with open(LOOPS_FILE, "r") as f:
+                    loops = json.load(f)
+                matched_l = next((l for l in loops if l.get("id") == req.loop_id), None)
+                if matched_l:
+                    loop_name = matched_l.get("name")
+            except Exception:
+                pass
+
         results = run_autopilot(
             boards=boards_list,
             keywords=kw_list,
@@ -586,6 +599,8 @@ def _execute_pipeline_task(req: RunPipelineRequest):
             resume_path=resume_path,
             headless=req.headless,
             job_limit=req.limit,
+            loop_id=req.loop_id,
+            loop_name=loop_name,
         )
         new_drafted = sum(1 for r in results if r.get("status") == "drafted")
         new_applied = sum(1 for r in results if r.get("status") == "applied")

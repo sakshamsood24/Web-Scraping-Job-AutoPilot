@@ -8,7 +8,7 @@ import os
 import sys
 import argparse
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 
 # Import pipeline modules
@@ -88,6 +88,8 @@ def run_autopilot(
     resume_path: str,
     headless: bool = True,
     job_limit: int = 5,
+    loop_id: Optional[int] = None,
+    loop_name: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Executes the end-to-end autopilot workflow:
@@ -191,13 +193,18 @@ def run_autopilot(
         if not is_remote:
             logger.info(f"❌ [NOT REMOTE] Position '{job_title}' is not remote. Skipping application.")
             status = "skipped_not_remote"
+            metadata = {"reasoning": reasoning}
+            if loop_id:
+                metadata["loop_id"] = loop_id
+            if loop_name:
+                metadata["loop_name"] = loop_name
             log_application(
                 job_url=job_url,
                 company=company,
                 title=job_title,
                 status=status,
                 match_score=match_score,
-                metadata={"reasoning": reasoning}
+                metadata=metadata
             )
             pipeline_summary.append({
                 "job_title": job_title,
@@ -212,13 +219,18 @@ def run_autopilot(
         if match_score < min_score:
             logger.info(f"⚠️ [SCORE BELOW THRESHOLD] Score {match_score} < {min_score}. Skipping application.")
             status = "skipped_low_match"
+            metadata = {"reasoning": reasoning}
+            if loop_id:
+                metadata["loop_id"] = loop_id
+            if loop_name:
+                metadata["loop_name"] = loop_name
             log_application(
                 job_url=job_url,
                 company=company,
                 title=job_title,
                 status=status,
                 match_score=match_score,
-                metadata={"reasoning": reasoning}
+                metadata=metadata
             )
             pipeline_summary.append({
                 "job_title": job_title,
@@ -245,30 +257,40 @@ def run_autopilot(
         if exec_result.get("success"):
             status = "drafted"
             logger.info(f"✅ Form successfully drafted! Screenshot saved at: {screenshot_path}")
+            metadata = {
+                "screenshot_path": screenshot_path,
+                "fields_filled": fields_filled,
+                "reasoning": reasoning,
+                "custom_answers": custom_answers,
+            }
+            if loop_id:
+                metadata["loop_id"] = loop_id
+            if loop_name:
+                metadata["loop_name"] = loop_name
             log_application(
                 job_url=job_url,
                 company=company,
                 title=job_title,
                 status=status,
                 match_score=match_score,
-                metadata={
-                    "screenshot_path": screenshot_path,
-                    "fields_filled": fields_filled,
-                    "reasoning": reasoning,
-                    "custom_answers": custom_answers,
-                }
+                metadata=metadata
             )
         else:
             status = "failed"
             error_msg = exec_result.get("error", "Unknown execution failure")
             logger.error(f"❌ Execution failed for {job_url}: {error_msg}")
+            metadata = {"error": error_msg, "screenshot_path": screenshot_path}
+            if loop_id:
+                metadata["loop_id"] = loop_id
+            if loop_name:
+                metadata["loop_name"] = loop_name
             log_application(
                 job_url=job_url,
                 company=company,
                 title=job_title,
                 status=status,
                 match_score=match_score,
-                metadata={"error": error_msg, "screenshot_path": screenshot_path}
+                metadata=metadata
             )
 
         pipeline_summary.append({

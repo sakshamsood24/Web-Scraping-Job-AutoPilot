@@ -351,12 +351,12 @@
 
     .filter-inputs-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
       margin-bottom: 14px;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
       .filter-inputs-grid { grid-template-columns: 1fr 1fr; }
     }
 
@@ -733,7 +733,7 @@
         </a>
       </li>
       <li>
-        <a class="menu-item active" onclick="switchView('matches')">
+        <a class="menu-item active" onclick="switchView('matches', true)">
           <span class="menu-icon">☰</span>
           <span>All Matches</span>
         </a>
@@ -819,10 +819,28 @@
         </div>
       </div>
 
+      <!-- Active Loop / Campaign Filter Indicator Banner -->
+      <div id="active-loop-filter-pill" style="display: none; align-items: center; justify-content: space-between; background: #e8f0fe; color: #1967d2; border: 1px solid #c2e7ff; padding: 10px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 500; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>🎯 Active Campaign Filter: <strong id="active-loop-filter-name" style="font-weight: 700;">Loop Name</strong></span>
+          <span class="badge-status status-blue" id="active-loop-matches-badge" style="font-size: 11px;">0 matches</span>
+        </div>
+        <button onclick="clearLoopFilter()" style="background: white; border: 1px solid #c2e7ff; border-radius: 4px; padding: 3px 10px; font-size: 12px; font-weight: 600; color: #1967d2; cursor: pointer;">
+          ✕ Clear Filter (Show All)
+        </button>
+      </div>
+
       <!-- ACTIVE FILTERS CARD -->
       <div class="filter-card">
         <div class="filter-card-legend">ACTIVE FILTERS</div>
         <div class="filter-inputs-grid">
+          <div class="form-group-filter">
+            <label>Campaign / Loop</label>
+            <select class="input-filter" id="filter-loop" onchange="applyFilters()">
+              <option value="all">All Campaigns (Loops)</option>
+            </select>
+          </div>
+
           <div class="form-group-filter">
             <label>Filter by status</label>
             <select class="input-filter" id="filter-status" onchange="applyFilters()">
@@ -1019,7 +1037,7 @@
     let selectedJobUrls = new Set();
 
     // Navigation View Switcher
-    function switchView(viewName) {
+    function switchView(viewName, clearLoop = false) {
       document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
 
@@ -1045,7 +1063,38 @@
 
       if (viewName === 'loops') loadLoops();
       if (viewName === 'questions') loadQuestions();
-      if (viewName === 'matches') fetchMatches();
+      if (viewName === 'matches') {
+        if (clearLoop) {
+          const sel = document.getElementById('filter-loop');
+          if (sel) sel.value = 'all';
+          const pill = document.getElementById('active-loop-filter-pill');
+          if (pill) pill.style.display = 'none';
+        }
+        fetchMatches();
+      }
+    }
+
+    let allLoopsCache = [];
+
+    // Populate loop filter dropdown options
+    function populateLoopFilterDropdown() {
+      const sel = document.getElementById('filter-loop');
+      if (!sel || !allLoopsCache.length) return;
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="all">All Campaigns (Loops)</option>' + 
+        allLoopsCache.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+      if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+        sel.value = currentVal;
+      }
+    }
+
+    function clearLoopFilter() {
+      const sel = document.getElementById('filter-loop');
+      if (sel) sel.value = 'all';
+      const pill = document.getElementById('active-loop-filter-pill');
+      if (pill) pill.style.display = 'none';
+      document.getElementById('current-view-title').textContent = 'All Matches';
+      applyFilters();
     }
 
     // Load Matches from Supabase via server.py
@@ -1055,7 +1104,19 @@
         const res = await fetch('/api/matches');
         const json = await res.json();
         allMatches = json.data || [];
-        renderMatches(allMatches);
+        
+        // Ensure loop options are populated
+        if (!allLoopsCache.length) {
+          try {
+            const lRes = await fetch('/api/loops');
+            const lData = await lRes.json();
+            allLoopsCache = lData.loops || [];
+          } catch (e) {}
+        }
+        populateLoopFilterDropdown();
+        
+        // Apply active filters (including loop filter if selected)
+        applyFilters();
         updateStats();
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #d93025; padding: 32px;">Failed to load matches: ${err.message}</td></tr>`;
@@ -1065,7 +1126,7 @@
     function renderMatches(rows) {
       const tbody = document.getElementById('matches-tbody');
       if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">No matching job applications found. Create a New Loop to discover roles!</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">No matching job applications found for the selected criteria.</td></tr>`;
         return;
       }
 
@@ -1137,35 +1198,85 @@
 
     // Filter Logic
     function applyFilters() {
-      const status = document.getElementById('filter-status').value;
-      const comp = document.getElementById('filter-company').value.toLowerCase().trim();
-      const desc = document.getElementById('filter-desc').value.toLowerCase().trim();
+      const status = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'all';
+      const comp = document.getElementById('filter-company') ? document.getElementById('filter-company').value.toLowerCase().trim() : '';
+      const desc = document.getElementById('filter-desc') ? document.getElementById('filter-desc').value.toLowerCase().trim() : '';
+      const loopVal = document.getElementById('filter-loop') ? document.getElementById('filter-loop').value : 'all';
+
+      // Find active loop if selected
+      const activeLoop = loopVal !== 'all' ? allLoopsCache.find(l => String(l.id) === String(loopVal)) : null;
+
+      // Update active loop pill & title
+      const pill = document.getElementById('active-loop-filter-pill');
+      const pillName = document.getElementById('active-loop-filter-name');
+      const pillBadge = document.getElementById('active-loop-matches-badge');
+      if (activeLoop && pill && pillName) {
+        pill.style.display = 'flex';
+        pillName.textContent = activeLoop.name;
+        document.getElementById('current-view-title').textContent = `Matches: ${activeLoop.name}`;
+      } else if (pill) {
+        pill.style.display = 'none';
+        document.getElementById('current-view-title').textContent = 'All Matches';
+      }
 
       const filtered = allMatches.filter(r => {
+        // Status filter
         const matchesStatus = status === 'all' || 
           (status === 'applied' && (r.status === 'applied' || r.status === 'drafted')) ||
           (status === 'drafted' && r.status === 'drafted') ||
           (status === 'skipped' && r.status && r.status.includes('skipped'));
 
+        // Company filter
         const matchesCompany = !comp || (r.company && r.company.toLowerCase().includes(comp));
+
+        // Desc / title text filter
         const matchesDesc = !desc || (
           (r.title && r.title.toLowerCase().includes(desc)) ||
           (r.reasoning && r.reasoning.toLowerCase().includes(desc)) ||
           (r.job_url && r.job_url.toLowerCase().includes(desc))
         );
 
-        return matchesStatus && matchesCompany && matchesDesc;
+        // Loop Filter: Check loop_id or loop criteria (boards and keywords)
+        let matchesLoop = true;
+        if (activeLoop) {
+          if (r.loop_id && String(r.loop_id) === String(activeLoop.id)) {
+            matchesLoop = true;
+          } else if (r.loop_name && r.loop_name.toLowerCase() === activeLoop.name.toLowerCase()) {
+            matchesLoop = true;
+          } else {
+            // Check loop's boards and keywords
+            const lBoards = (activeLoop.boards || 'all').split(',').map(b => b.trim().toLowerCase());
+            const boardMatches = lBoards.includes('all') || lBoards.includes((r.company || '').toLowerCase());
+
+            const lKeywords = (activeLoop.keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(k => !['remote', 'wfh', 'anywhere'].includes(k));
+            const textToSearch = `${r.title || ''} ${r.reasoning || ''} ${r.company || ''} ${r.job_url || ''}`.toLowerCase();
+            const kwMatches = lKeywords.length === 0 || lKeywords.some(k => textToSearch.includes(k));
+
+            matchesLoop = boardMatches && kwMatches;
+          }
+        }
+
+        return matchesStatus && matchesCompany && matchesDesc && matchesLoop;
       });
+
+      if (pillBadge) {
+        pillBadge.textContent = `${filtered.length} matches`;
+      }
 
       renderMatches(filtered);
     }
 
     function resetFilters() {
-      document.getElementById('filter-status').value = 'all';
-      document.getElementById('filter-platform').value = 'all';
-      document.getElementById('filter-company').value = '';
-      document.getElementById('filter-desc').value = '';
-      renderMatches(allMatches);
+      if (document.getElementById('filter-status')) document.getElementById('filter-status').value = 'all';
+      if (document.getElementById('filter-platform')) document.getElementById('filter-platform').value = 'all';
+      if (document.getElementById('filter-company')) document.getElementById('filter-company').value = '';
+      if (document.getElementById('filter-desc')) document.getElementById('filter-desc').value = '';
+      const loopSel = document.getElementById('filter-loop');
+      if (loopSel) loopSel.value = 'all';
+      const pill = document.getElementById('active-loop-filter-pill');
+      if (pill) pill.style.display = 'none';
+      document.getElementById('current-view-title').textContent = 'All Matches';
+      applyFilters();
     }
 
     // Checkbox selections for batch apply
@@ -1319,6 +1430,8 @@
         const res = await fetch('/api/loops');
         const data = await res.json();
         const loops = data.loops || [];
+        allLoopsCache = loops;
+        populateLoopFilterDropdown();
 
         if (loops.length === 0) {
           cont.innerHTML = `
@@ -1366,8 +1479,8 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: #f8f9fa; border-radius: 6px; padding: 10px; margin-bottom: 16px; text-align: center;">
-                  <div>
-                    <div style="font-size: 11px; color: var(--text-muted);">Matches</div>
+                  <div onclick="viewLoopMatches(${loop.id})" style="cursor: pointer; transition: transform 0.15s ease;" title="Click to view matches for this campaign" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+                    <div style="font-size: 11px; color: var(--text-muted);">Matches ↗</div>
                     <div style="font-size: 17px; font-weight: 700; color: #1967d2;">${loop.matches_count || 0}</div>
                   </div>
                   <div>
@@ -1386,7 +1499,7 @@
                   <button id="run-btn-${loop.id}" class="btn-apply-filters" style="flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="runLoopById(${loop.id}, '${escapeHtml(loop.name)}')">
                     <span>▶</span> Run &amp; Search Now
                   </button>
-                  <button class="btn-reset-filters" style="padding: 8px 12px; font-size: 13px;" title="View all matching jobs in table" onclick="filterMatchesByKeywords('${escapeHtml(loop.keywords)}')">
+                  <button class="btn-reset-filters" style="padding: 8px 12px; font-size: 13px;" title="View all matching jobs in table" onclick="viewLoopMatches(${loop.id})">
                     🔍 Matches
                   </button>
                   <button class="btn-reset-filters" style="padding: 8px 10px; color: #d93025; font-size: 13px;" title="Delete Loop" onclick="deleteLoopById(${loop.id})">
@@ -1527,14 +1640,28 @@
       } catch (e) {}
     }
 
-    function filterMatchesByKeywords(keywords) {
+    async function viewLoopMatches(loopId) {
       switchView('matches');
-      const firstKw = (keywords || '').split(',')[0].trim();
-      const input = document.getElementById('filter-desc');
-      if (input) {
-        input.value = firstKw;
-        applyFilters();
+
+      // Ensure loops cache is loaded
+      if (!allLoopsCache || !allLoopsCache.length) {
+        try {
+          const res = await fetch('/api/loops');
+          const data = await res.json();
+          allLoopsCache = data.loops || [];
+        } catch(e) {}
       }
+
+      populateLoopFilterDropdown();
+      const loopSel = document.getElementById('filter-loop');
+      if (loopSel) loopSel.value = String(loopId);
+
+      // Reset company and description search text so loop matches aren't hidden
+      if (document.getElementById('filter-company')) document.getElementById('filter-company').value = '';
+      if (document.getElementById('filter-desc')) document.getElementById('filter-desc').value = '';
+      if (document.getElementById('filter-status')) document.getElementById('filter-status').value = 'all';
+
+      applyFilters();
     }
 
     function runLoopNow(boards, keywords, minScore) {
