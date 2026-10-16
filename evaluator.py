@@ -17,46 +17,43 @@ load_dotenv()
 
 logger = logging.getLogger("JobAutopilot.Evaluator")
 
-# Hardcoded Candidate Profile for Full-Stack PHP / CodeIgniter Developer
+# Candidate Profile for Saksham Sood
 CANDIDATE_PROFILE = {
     "personal_info": {
-        "first_name": "Alex",
-        "last_name": "Morgan",
-        "full_name": "Alex Morgan",
-        "email": "alex.morgan.dev@example.com",
-        "phone": "+1-555-019-2834",
+        "first_name": "Saksham",
+        "last_name": "Sood",
+        "full_name": "Saksham Sood",
+        "email": "sakshamsood007@gmail.com",
+        "phone": "+919882315768",
         "location": "Remote / Global Worldwide",
-        "linkedin": "https://www.linkedin.com/in/alex-morgan-fullstack-php",
-        "github": "https://github.com/alex-morgan-dev",
-        "portfolio": "https://alexmorgan.dev"
+        "linkedin": "https://www.linkedin.com/in/sakshamsood24/",
+        "github": "https://github.com/sakshamsood24",
+        "portfolio": "https://github.com/sakshamsood24"
     },
     "professional_summary": (
-        "Full-Stack PHP Developer with 4 years of proven production experience designing, developing, "
-        "and scaling robust web applications using PHP (7.4 & 8.x), CodeIgniter (3 & 4), and Laravel. "
-        "Deep expertise in database optimization with MySQL/PostgreSQL, RESTful API architecture, "
-        "responsive frontend interfaces (JavaScript/React/Vue), Docker containerization, and automated CI/CD pipelines. "
-        "Strong advocate for clean MVC architecture, unit testing, and security best practices."
+        "Full Stack Developer with 4+ years of experience building scalable ERP and SaaS applications. "
+        "Strong expertise in RESTful API development, database optimization, payment gateway integration, "
+        "PHP (CodeIgniter, Laravel), Python, JavaScript, and high-concurrency systems."
     ),
     "years_of_experience": 4,
     "core_skills": [
-        "PHP (PHP 7.4, PHP 8.x)",
-        "CodeIgniter (3 & 4)",
-        "Laravel",
-        "MySQL & PostgreSQL database design, indexing, and optimization",
-        "RESTful API Development & Third-party Integrations",
-        "JavaScript (ES6+), HTML5, CSS3, Tailwind CSS",
-        "Vue.js / React fundamentals",
-        "Docker, Linux (Ubuntu/Debian), Apache, Nginx",
-        "Git version control, GitHub Actions, CI/CD"
+        "PHP (CodeIgniter, Laravel)",
+        "Python",
+        "JavaScript (ES6+), React.js, jQuery",
+        "MySQL & PostgreSQL database optimization, indexing, and data modeling",
+        "RESTful API Development & Payment Gateway Integrations",
+        "ASP.NET, Blazor, C#",
+        "Linux (CLI proficient, server management), Docker",
+        "Git, GitHub Actions, Agile / Kanban"
     ],
     "employment_preferences": {
-        "desired_role": "Full-Stack PHP Developer / Backend PHP Engineer",
+        "desired_role": "Full-Stack Developer / Backend Engineer",
         "workplace_type": "100% Remote Global / Worldwide",
         "contract_type": "Permanent, Full-Time",
-        "notice_period": "Immediate to 2 weeks",
+        "notice_period": "1 month",
         "sponsorship_required": False,
         "legally_authorized_to_work": True,
-        "salary_expectation_usd": "$90,000 - $110,000 USD per annum"
+        "salary_expectation_usd": "$10,000 - $110,000 USD per annum"
     }
 }
 

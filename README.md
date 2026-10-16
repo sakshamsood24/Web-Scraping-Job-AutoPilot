@@ -132,7 +132,15 @@ CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
 
 ## 💻 Usage Guide
 
-### Run Autopilot (Standard Run)
+### 🌟 Launch Live Web Dashboard (Recommended)
+Launch the interactive command center UI to monitor Supabase applications, inspect match scores, view filled application screenshots, upload resumes, and trigger runs:
+```bash
+source .venv/bin/activate
+python3 server.py
+```
+Open **[http://localhost:8000](http://localhost:8000)** in your browser!
+
+### Run Autopilot from Terminal (Standard Run)
 ```bash
 source .venv/bin/activate
 python3 main.py --boards canonical --limit 5 --min-score 75
