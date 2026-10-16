@@ -340,7 +340,7 @@ async def fill_job_application(
     SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
     profile = candidate_profile or CANDIDATE_PROFILE
     personal = profile.get("personal_info", {})
-    resolved_resume = resume_path or os.getenv("RESUME_PATH", "assets/resume_alex_morgan.pdf")
+    resolved_resume = resume_path or os.getenv("RESUME_PATH", "assets/Saksham_Sood_Resume(1).pdf")
 
     timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     safe_url_slug = re.sub(r"[^a-zA-Z0-9]+", "_", job_url.split("/")[-1] or "job")[:30]
@@ -434,7 +434,7 @@ async def fill_job_application(
             if await fill_field_by_selectors(
                 page,
                 ["#first_name", "input[name='first_name']", "input[id*='first_name' i]"],
-                personal.get("first_name", "Alex"),
+                personal.get("first_name", "Saksham"),
                 "First Name"
             ):
                 fields_filled.append("first_name")
@@ -443,7 +443,7 @@ async def fill_job_application(
             if await fill_field_by_selectors(
                 page,
                 ["#last_name", "input[name='last_name']", "input[id*='last_name' i]"],
-                personal.get("last_name", "Morgan"),
+                personal.get("last_name", "Sood"),
                 "Last Name"
             ):
                 fields_filled.append("last_name")
@@ -452,7 +452,7 @@ async def fill_job_application(
             if await fill_field_by_selectors(
                 page,
                 ["#email", "input[name='email']", "input[type='email']", "input[id*='email' i]"],
-                personal.get("email", "alex.morgan.dev@example.com"),
+                personal.get("email", "sakshamsood007@gmail.com"),
                 "Email"
             ):
                 fields_filled.append("email")
@@ -461,7 +461,7 @@ async def fill_job_application(
             if await fill_field_by_selectors(
                 page,
                 ["#phone", "input[name='phone']", "input[type='tel']", "input[id*='phone' i]"],
-                personal.get("phone", "+1-555-019-2834"),
+                personal.get("phone", "+919882315768"),
                 "Phone"
             ):
                 fields_filled.append("phone")

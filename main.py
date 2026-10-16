@@ -52,7 +52,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--resume",
         type=str,
-        default=os.getenv("RESUME_PATH", "assets/resume_alex_morgan.pdf"),
+        default=os.getenv("RESUME_PATH", "assets/Saksham_Sood_Resume(1).pdf"),
         help="Path to resume file (PDF/DOCX) for programmatic upload"
     )
     parser.add_argument(
