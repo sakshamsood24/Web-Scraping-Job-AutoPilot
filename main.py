@@ -16,6 +16,8 @@ from db import is_already_applied, get_all_applied_urls, log_application, get_su
 from fetcher import (
     fetch_greenhouse_jobs,
     fetch_worldwide_remote_jobs,
+    fetch_job_portal_jobs,
+    SUPPORTED_JOB_PORTALS,
     DEFAULT_KEYWORDS,
     POPULAR_TECH_COMPANIES,
 )
@@ -119,42 +121,65 @@ def run_autopilot(
             "To connect PostgreSQL, set SUPABASE_URL and SUPABASE_KEY in your .env file."
         )
 
-    # Expand "all", "auto", "worldwide", "global", or "any" to all popular tech companies + global remote feeds
-    expanded_boards: List[str] = []
-    include_worldwide_feed = False
-    for b in boards:
-        b_clean = b.strip().lower()
-        if b_clean in ("all", "auto", "popular", "any", "top", "worldwide", "global", "remote"):
-            expanded_boards.extend(POPULAR_TECH_COMPANIES)
-            include_worldwide_feed = True
-        elif b_clean:
-            expanded_boards.append(b.strip())
-    
-    unique_boards = list(dict.fromkeys(expanded_boards)) if expanded_boards else POPULAR_TECH_COMPANIES
-    if not expanded_boards:
-        include_worldwide_feed = True
-
-    # 2. Discovery Phase
+    # 2. Discovery Phase across Portals, Worldwide Feeds, and Direct Career Sites
     all_discovered_jobs: List[Dict[str, Any]] = []
 
-    # A. Scrape Greenhouse company boards
-    for board_token in unique_boards:
-        try:
-            jobs = fetch_greenhouse_jobs(board_token, keywords=keywords, filter_by_keywords=True)
-            all_discovered_jobs.extend(jobs)
-        except Exception as e:
-            logger.error(f"Error fetching jobs from board '{board_token}': {e}")
+    # Identify requested job portals
+    portal_keywords = {"indeed", "linkedin", "glassdoor", "zip_recruiter", "ziprecruiter", "portals", "all", "worldwide", "global", "auto"}
+    has_portal_request = any(b.strip().lower() in portal_keywords for b in boards) or not boards
+    
+    specific_portals = [
+        b.strip().lower() for b in boards
+        if b.strip().lower() in ("indeed", "linkedin", "glassdoor", "zip_recruiter", "ziprecruiter")
+    ]
+    if not specific_portals and has_portal_request:
+        specific_portals = ["indeed", "linkedin", "glassdoor", "zip_recruiter"]
 
-    # B. If worldwide/global is enabled, also scrape worldwide remote job feeds (Jobicy, Remotive)
+    # A. Scrape Major Job Portals (Indeed, LinkedIn, Glassdoor, ZipRecruiter)
+    if specific_portals:
+        try:
+            logger.info(f"🌐 Querying Open Job Portals: {specific_portals} for keywords {keywords}...")
+            portal_jobs = fetch_job_portal_jobs(
+                keywords=keywords,
+                sites=specific_portals,
+                location="Remote",
+                country_indeed="india",
+                results_wanted=15
+            )
+            all_discovered_jobs.extend(portal_jobs)
+            logger.info(f"Discovered {len(portal_jobs)} candidate jobs directly from job portals ({specific_portals}).")
+        except Exception as e:
+            logger.error(f"Error scraping job portals with JobSpy: {e}")
+
+    # B. Scrape Global Worldwide Developer Feeds (Jobicy & Remotive)
+    include_worldwide_feed = any(b.strip().lower() in ("all", "worldwide", "global", "portals", "auto", "remote") for b in boards) or not boards
     if include_worldwide_feed:
         try:
-            worldwide_jobs = fetch_worldwide_remote_jobs(keywords=keywords, limit=40)
+            worldwide_jobs = fetch_worldwide_remote_jobs(keywords=keywords, limit=35)
             all_discovered_jobs.extend(worldwide_jobs)
             logger.info(f"Discovered {len(worldwide_jobs)} additional candidate jobs from global worldwide feeds.")
         except Exception as e:
             logger.error(f"Error fetching worldwide remote feeds: {e}")
 
-    logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across {len(unique_boards)} boards and worldwide feeds.")
+    # C. Direct Company Career Boards (Greenhouse, etc.)
+    # When user specifies company tokens (e.g. 'canonical', 'stripe') or asks for company boards
+    company_tokens = [
+        b.strip() for b in boards
+        if b.strip().lower() not in ("all", "auto", "portals", "worldwide", "global", "indeed", "linkedin", "glassdoor", "zip_recruiter", "ziprecruiter", "remote")
+    ]
+    if any(b.strip().lower() in ("companies", "greenhouse") for b in boards):
+        company_tokens.extend(POPULAR_TECH_COMPANIES)
+
+    if company_tokens:
+        logger.info(f"🏢 Scraping direct company career boards: {company_tokens}...")
+        for board_token in list(dict.fromkeys(company_tokens)):
+            try:
+                jobs = fetch_greenhouse_jobs(board_token, keywords=keywords, filter_by_keywords=True)
+                all_discovered_jobs.extend(jobs)
+            except Exception as e:
+                logger.error(f"Error fetching jobs from board '{board_token}': {e}")
+
+    logger.info(f"Discovered {len(all_discovered_jobs)} total candidate job postings across portals, career sites, and global feeds.")
 
     # Deduplication using batch pre-fetched URLs from Supabase
     applied_urls = get_all_applied_urls()

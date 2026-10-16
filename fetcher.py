@@ -107,13 +107,15 @@ def is_location_eligible_for_candidate(location_str: str, desc_str: str = "") ->
       'US citizens only', 'Active security clearance required', 'UK only', 'Canada only').
     """
     loc = (location_str or "").lower().strip()
+    if loc in ("nan", "none", "null", ""):
+        loc = "remote"
     desc_start = (desc_str or "").lower()[:1200]
 
-    # Explicit positive worldwide signals
+    # Explicit positive worldwide or India signals
     global_positives = [
         "anywhere", "worldwide", "global", "all countries", "apac", "asia",
         "india", "remote - global", "remote - anywhere", "work from anywhere",
-        "remote (worldwide)", "remote worldwide"
+        "remote (worldwide)", "remote worldwide", "remote, india", "india, remote"
     ]
     if any(pos in loc for pos in global_positives) or any(pos in desc_start for pos in ["worldwide remote", "work from anywhere", "remote globally"]):
         return True
@@ -348,6 +350,103 @@ def fetch_worldwide_remote_jobs(
     worldwide_jobs.sort(key=lambda j: j.get("relevance_score", 0), reverse=True)
     logger.info(f"Discovered {len(worldwide_jobs)} worldwide remote jobs matching keywords {keywords}")
     return worldwide_jobs[:limit]
+
+
+SUPPORTED_JOB_PORTALS = ["indeed", "linkedin", "glassdoor", "zip_recruiter"]
+
+
+def fetch_job_portal_jobs(
+    keywords: List[str],
+    sites: Optional[List[str]] = None,
+    location: str = "Remote",
+    country_indeed: str = "india",
+    results_wanted: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Scrapes job postings from major open job portals (Indeed, LinkedIn, Glassdoor, ZipRecruiter)
+    using python-jobspy.
+    
+    Args:
+        keywords: Search terms / keywords (e.g. ['Full Stack', 'PHP', 'Developer'])
+        sites: List of portals to scrape ('indeed', 'linkedin', 'glassdoor', 'zip_recruiter')
+        location: Location filter (e.g. 'Remote' or 'India')
+        country_indeed: Indeed country domain ('india', 'usa', etc.)
+        results_wanted: Max results per portal
+        
+    Returns:
+        List[Dict[str, Any]]: Standardized job records
+    """
+    valid_sites = []
+    requested = sites or SUPPORTED_JOB_PORTALS
+    for s in requested:
+        s_clean = s.strip().lower()
+        if s_clean in ("indeed", "linkedin", "glassdoor", "zip_recruiter"):
+            valid_sites.append(s_clean)
+        elif s_clean in ("ziprecruiter", "zip"):
+            valid_sites.append("zip_recruiter")
+    
+    if not valid_sites:
+        valid_sites = ["indeed", "linkedin", "glassdoor"]
+
+    # Filter out location modifiers from tech role search term
+    role_kws = [k.strip() for k in keywords if k.strip().lower() not in ("remote", "wfh", "anywhere", "worldwide", "global")]
+    search_query = " ".join(role_kws) if role_kws else "Full Stack Developer"
+
+    logger.info(f"Scraping job portals {valid_sites} for query='{search_query}', location='{location}', country='{country_indeed}'")
+
+    jobs: List[Dict[str, Any]] = []
+    try:
+        from jobspy import scrape_jobs
+        import hashlib
+
+        df = scrape_jobs(
+            site_name=valid_sites,
+            search_term=search_query,
+            location=location,
+            results_wanted=results_wanted,
+            country_indeed=country_indeed,
+        )
+
+        if df is not None and not df.empty:
+            for _, r in df.iterrows():
+                url = str(r.get("job_url") or "").strip()
+                if not url or url == "nan":
+                    continue
+                title = str(r.get("title") or "Untitled Position").strip()
+                comp = str(r.get("company") or "Company").strip()
+                site = str(r.get("site") or "portal").strip()
+                loc = str(r.get("location") or location).strip()
+                desc = clean_html_content(str(r.get("description") or ""))
+                
+                # Check candidate geographic eligibility
+                if not is_location_eligible_for_candidate(loc, desc):
+                    continue
+
+                job_id = f"{site}-{hashlib.md5(url.encode()).hexdigest()[:10]}"
+                job_rec = {
+                    "id": job_id,
+                    "company": comp,
+                    "title": title,
+                    "location": loc if loc and loc != "nan" else "Remote",
+                    "url": url,
+                    "description": desc,
+                    "content_html": "",
+                    "updated_at": str(r.get("date_posted") or ""),
+                    "source": site.capitalize(),
+                    "relevance_score": 10,
+                }
+                
+                # Verify keyword match
+                matched, score = matches_filter(job_rec, keywords)
+                if matched:
+                    job_rec["relevance_score"] = score
+                    jobs.append(job_rec)
+
+        logger.info(f"Retrieved {len(jobs)} matching jobs from portals {valid_sites}")
+    except Exception as e:
+        logger.error(f"Error scraping job portals with JobSpy: {e}")
+
+    return jobs
 
 
 if __name__ == "__main__":

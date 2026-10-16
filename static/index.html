@@ -924,7 +924,7 @@
         <div>
           <h2 style="font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px;">My Automated Campaigns (Loops)</h2>
           <p style="font-size: 13.5px; color: var(--text-muted);">
-            Autonomous engines that continuously search 26+ verified tech boards and global remote feeds (4,500+ live jobs), evaluate job descriptions against your resume, and generate drafted applications.
+            Autonomous engines that continuously search major open job portals (Indeed, LinkedIn, Glassdoor, ZipRecruiter), global remote feeds, and company career sites to match your resume.
           </p>
         </div>
         <div style="display: flex; gap: 10px;">
@@ -940,7 +940,7 @@
             <div class="spinner-small" style="width: 22px; height: 22px; border: 2.5px solid #1a73e8; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0;"></div>
             <div>
               <div style="font-weight: 600; font-size: 14px; color: #1a73e8;" id="loop-banner-title">Loop Running...</div>
-              <div style="font-size: 12.5px; color: var(--text-body);" id="loop-banner-status">Searching 26+ tech boards &amp; worldwide remote feeds...</div>
+              <div style="font-size: 12.5px; color: var(--text-body);" id="loop-banner-status">Searching Indeed, LinkedIn, Glassdoor, Worldwide Remote feeds &amp; Company sites...</div>
             </div>
           </div>
           <span class="badge-status status-blue" style="font-weight: 600; font-size: 11px;">AUTOPILOT SEARCHING</span>
@@ -991,10 +991,10 @@
             <input type="text" class="input-filter" id="new-loop-name" value="Full-Stack Remote Developer" required>
           </div>
           <div style="margin-bottom: 16px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 6px;">Target Boards / Feeds (e.g. worldwide, all, or canonical, stripe)</label>
-            <input type="text" class="input-filter" id="new-loop-boards" value="worldwide" required>
+            <label style="display: block; font-weight: 600; margin-bottom: 6px;">Job Portals &amp; Sources (e.g. all, indeed, linkedin, glassdoor, or company slug)</label>
+            <input type="text" class="input-filter" id="new-loop-boards" value="all" required>
             <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
-              💡 Enter <strong>worldwide</strong> or <strong>all</strong> to search 26+ verified tech boards &amp; global remote feeds, or enter specific company slugs.
+              💡 Type <strong>all</strong> to search across open job portals (Indeed, LinkedIn, Glassdoor, ZipRecruiter) &amp; global remote feeds, or specify custom portals / company slugs.
             </div>
           </div>
           <div style="margin-bottom: 16px;">
@@ -1028,7 +1028,7 @@
   </div>
 
   <!-- FLOATING CHAT WIDGET -->
-  <div class="floating-chat-bubble" title="System Status" onclick="alert('JobPilot is active. Connected to Supabase DB, 26+ Greenhouse tech boards, and worldwide remote job feeds.')">
+  <div class="floating-chat-bubble" title="System Status" onclick="alert('JobPilot is active. Connected to Supabase DB, Indeed, LinkedIn, Glassdoor, and global remote job feeds.')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </svg>
@@ -1453,8 +1453,8 @@
             <span style="background: #e8f0fe; color: #1967d2; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; display: inline-block;">${k}</span>
           `).join(' ');
 
-          const boardLabel = (loop.boards === 'all' || loop.boards === 'worldwide' || !loop.boards)
-            ? 'Worldwide Remote & 26+ Tech Boards'
+          const boardLabel = (loop.boards === 'all' || loop.boards === 'portals' || loop.boards === 'worldwide' || !loop.boards)
+            ? '🌐 Indeed • LinkedIn • Glassdoor • Global Remote'
             : loop.boards;
 
           return `
@@ -1584,7 +1584,7 @@
           }
           return;
         }
-        showToast(`🚀 Loop started! Searching 26+ tech boards & worldwide feeds for ${loopName}...`);
+        showToast(`🚀 Loop started! Searching job portals & feeds for ${loopName}...`);
         startStatusPolling(loopId);
       } catch (e) {
         showToast('Failed to start loop: ' + e.message, 'error');
@@ -1678,7 +1678,7 @@
         if (res.status === 409) {
           showToast('A loop is already in progress. Please wait.', 'info');
         } else {
-          showToast('🚀 Autopilot started! Searching 26+ tech boards & worldwide feeds...');
+          showToast('🚀 Autopilot started! Searching Indeed, LinkedIn, Glassdoor, and worldwide feeds...');
           startStatusPolling();
         }
       }).catch(e => {
