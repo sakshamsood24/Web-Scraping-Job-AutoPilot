@@ -16,8 +16,9 @@ class TestDatabaseLayer(unittest.TestCase):
     def setUp(self):
         _local_url_cache.clear()
 
-    def test_deduplication_local_cache(self):
-        test_url = "https://boards.greenhouse.io/testco/jobs/999"
+    @patch("db.get_supabase_client", return_value=None)
+    def test_deduplication_local_cache(self, mock_client):
+        test_url = "https://boards.greenhouse.io/testco/jobs/local-cache-test-999"
         self.assertFalse(is_already_applied(test_url))
 
         # Log application
