@@ -1,7 +1,7 @@
 """
-server.py - LoopCV-Style Autonomous Job Search & Application Server
-Replicates the full LoopCV web application experience with Supabase PostgreSQL,
-Playwright form autofill, automated campaigns (Loops), CV Checker, and live search.
+server.py - JobPilot Autonomous Job Search & Application Server
+Personal, 100% free autonomous job application platform powered by
+Supabase PostgreSQL, Gemini AI, and Playwright stealth browser automation.
 """
 
 import os
@@ -30,8 +30,8 @@ from executor import fill_job_application_sync
 from fetcher import fetch_greenhouse_jobs, POPULAR_TECH_COMPANIES
 
 app = FastAPI(
-    title="LoopCV Pro - Autonomous Job Search & Application Platform",
-    description="Full LoopCV replica connected to Supabase and Playwright executor",
+    title="JobPilot - Autonomous Job Search & Application Platform",
+    description="Personal autonomous job search engine with Supabase and Playwright executor",
     version="2.0.0"
 )
 
@@ -564,5 +564,5 @@ async def list_screenshots():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    print(f"\n🚀 Starting LoopCV Pro Dashboard at http://localhost:{port}")
+    print(f"\n🚀 Starting JobPilot Dashboard at http://localhost:{port}")
     uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)

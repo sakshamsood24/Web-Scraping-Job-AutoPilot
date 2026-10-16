@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>All Matches | LoopCV Pro</title>
+  <title>All Matches | JobPilot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -696,11 +696,11 @@
   <!-- LEFT SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <svg class="brand-logo-icon" viewBox="0 0 32 32">
-        <path d="M16 4C9.37 4 4 9.37 4 16s5.37 12 12 12 12-5.37 12-12S22.63 4 16 4zm0 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#000000"/>
-        <circle cx="16" cy="16" r="3" fill="#000000"/>
+      <svg class="brand-logo-icon" viewBox="0 0 24 24" fill="none" stroke="#1967d2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
-      <span class="brand-title">loopcv</span>
+      <span class="brand-title">JobPilot</span>
+      <span style="font-size: 10px; font-weight: 700; color: #1967d2; background: #e8f0fe; padding: 2px 6px; border-radius: 4px; margin-left: 2px;">FREE</span>
     </div>
 
     <ul class="sidebar-menu">
@@ -761,17 +761,17 @@
     </ul>
 
     <div class="sidebar-footer">
-      <button class="btn-upgrade" onclick="openNewLoopModal()">
-        <span>🚀</span> Upgrade Now
+      <button class="btn-upgrade" onclick="runLoopNow('all', 'remote, full stack, php, python', 70)">
+        <span>⚡</span> Run All Loops
       </button>
-      <button class="btn-outline-pill" onclick="alert('Help & documentation: LoopCV Autopilot connects directly to Supabase and headlessly executes job applications with Playwright.')">
-        <span>❓</span> Help - FAQ
+      <button class="btn-outline-pill" onclick="alert('JobPilot is your personal free autonomous job application engine. It connects directly to Supabase and headlessly executes job applications with Playwright.')">
+        <span>📖</span> Documentation
       </button>
-      <button class="btn-outline-pill" onclick="openNewLoopModal()">
-        <span>💡</span> Feature Request
+      <button class="btn-outline-pill" onclick="switchView('cv_builder')">
+        <span>⚙️</span> Profile Settings
       </button>
-      <a class="lang-select-btn">
-        <span>🌐</span> Select Language
+      <a class="lang-select-btn" onclick="alert('Language: English (US)')">
+        <span>🌐</span> English (US)
       </a>
     </div>
   </aside>
@@ -971,7 +971,7 @@
   </div>
 
   <!-- FLOATING CHAT WIDGET -->
-  <div class="floating-chat-bubble" onclick="alert('LoopCV Autopilot is running. 11+ Greenhouse boards connected.')">
+  <div class="floating-chat-bubble" title="System Status" onclick="alert('JobPilot is active. Connected to Supabase DB and 11+ Greenhouse boards.')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </svg>
@@ -1001,7 +1001,7 @@
         'cv_checker': 'CV Checker',
         'cv_builder': 'CV Builder & Profile'
       };
-      document.getElementById('current-view-title').textContent = titles[viewName] || 'LoopCV Pro';
+      document.getElementById('current-view-title').textContent = titles[viewName] || 'JobPilot';
 
       // Highlight active menu
       const clickedMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.getAttribute('onclick') && el.getAttribute('onclick').includes(viewName));

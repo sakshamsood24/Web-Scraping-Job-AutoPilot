@@ -132,7 +132,7 @@ CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
 
 ## 💻 Usage Guide
 
-### 🌟 Launch Live Web Dashboard (Recommended)
+### 🌟 Launch JobPilot Web Dashboard (Recommended)
 Launch the interactive command center UI to monitor Supabase applications, inspect match scores, view filled application screenshots, upload resumes, and trigger runs:
 ```bash
 source .venv/bin/activate
